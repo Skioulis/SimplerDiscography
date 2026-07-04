@@ -18,11 +18,17 @@ automatically via ORM ``before_insert`` / ``before_update`` events.
 from __future__ import annotations
 
 import unicodedata
+from datetime import datetime
 
-from sqlalchemy import Text, event
+from sqlalchemy import DateTime, Text, event, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from extensions import db
+
+# Baseline timestamp for records that predate change-tracking: the existing
+# catalogue is seeded with this value, and it is the column default.
+DEFAULT_TIMESTAMP = datetime(2026, 1, 1, 0, 0, 0)
+_DEFAULT_TIMESTAMP_SQL = "'2026-01-01 00:00:00'"
 
 
 def fold(s: str | None) -> str:
@@ -55,6 +61,22 @@ class Song(db.Model):
     # searchable fields. Not shown to users; maintained by the events below and
     # indexed by the song_fts FTS5 table.
     search_blob: Mapped[str] = mapped_column(Text, default="")
+
+    # Change-tracking. Both default to DEFAULT_TIMESTAMP (2026-01-01 00:00:00);
+    # `updated` also bumps to the current time whenever a row is modified.
+    created: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=DEFAULT_TIMESTAMP,
+        server_default=text(_DEFAULT_TIMESTAMP_SQL),
+    )
+    updated: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=DEFAULT_TIMESTAMP,
+        server_default=text(_DEFAULT_TIMESTAMP_SQL),
+        onupdate=func.now(),
+    )
 
     # Maps CSV column header (Greek) -> model attribute name.
     # Order matches the columns in the source CSV.

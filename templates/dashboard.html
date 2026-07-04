@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Δισκογραφικό Αρχείο — Επισκόπηση{% endblock %}
+
+{% block content %}
+{% set dmax = (stats.decades | map(attribute='count') | max) or 1 %}
+{% set cmax = (stats.top_composers[0].count if stats.top_composers else 1) %}
+{% set lmax = (stats.top_lyricists[0].count if stats.top_lyricists else 1) %}
+{% set fmax = (stats.formats[0].count if stats.formats else 1) %}
+
+<main class="wrap">
+
+  <header class="masthead">
+    <div class="masthead__disc">
+      <svg class="disc" viewBox="0 0 240 240" role="img"
+           aria-label="{{ stats.total|gr }} τραγούδια στο αρχείο">
+        <circle cx="120" cy="120" r="118" fill="#1c140f"/>
+        <circle cx="120" cy="120" r="118" fill="none" stroke="#b1802f" stroke-opacity=".35" stroke-width="1.5"/>
+        {% for r in range(72, 116, 5) %}
+        <circle cx="120" cy="120" r="{{ r }}" fill="none" stroke="#e9dec7" stroke-opacity=".06"/>
+        {% endfor %}
+        <circle cx="120" cy="120" r="66" fill="#8a2b23"/>
+        <circle cx="120" cy="120" r="66" fill="none" stroke="#b1802f" stroke-width="2.5"/>
+        <circle cx="120" cy="120" r="55" fill="none" stroke="#f2ede0" stroke-opacity=".22"/>
+      </svg>
+      <div class="disc__label">
+        <span class="disc__value">{{ stats.total|gr }}</span>
+        <span class="disc__unit">τραγούδια</span>
+      </div>
+    </div>
+
+    <div class="masthead__intro">
+      <p class="eyebrow">Δισκογραφικό Αρχείο</p>
+      <h1 class="masthead__title">Η συλλογή με μια ματιά</h1>
+      <p class="masthead__desc">
+        Συνθέτες, στιχουργοί, στίχοι και δισκογραφικά στοιχεία —
+        από τα 78άρια ως σήμερα.
+      </p>
+      <dl class="kpis">
+        <div class="kpi">
+          <dd class="kpi__num">{{ stats.composers|gr }}</dd>
+          <dt class="kpi__label">Συνθέτες</dt>
+        </div>
+        <div class="kpi">
+          <dd class="kpi__num">{{ stats.lyricists|gr }}</dd>
+          <dt class="kpi__label">Στιχουργοί</dt>
+        </div>
+        <div class="kpi">
+          <dd class="kpi__num">{{ stats.period }}</dd>
+          <dt class="kpi__label">Περίοδος</dt>
+        </div>
+      </dl>
+    </div>
+  </header>
+
+  <section class="card card--feature accent-petrol">
+    <div class="card__head">
+      <p class="eyebrow">Χρονολόγηση</p>
+      <h2 class="card__title">Ηχογραφήσεις ανά δεκαετία</h2>
+      <p class="card__sub">
+        Κατά προσέγγιση, με βάση την παλαιότερη χρονολογία που αναφέρεται.
+        {{ stats.dated|gr }} εγγραφές με χρονολογία, {{ stats.undated|gr }} χωρίς.
+      </p>
+    </div>
+    <ul class="chart">
+      {% for d in stats.decades %}
+      <li class="chart__row" style="--i: {{ loop.index0 }}">
+        <span class="chart__key">{{ d.label }}</span>
+        <span class="chart__track">
+          <i class="chart__fill" style="width: {{ (d.count / dmax * 100)|round(2) }}%"></i>
+        </span>
+        <span class="chart__val">{{ d.count|gr }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <div class="grid">
+    <section class="card accent-oxblood">
+      <div class="card__head">
+        <p class="eyebrow">Δημιουργοί</p>
+        <h2 class="card__title">Συνθέτες</h2>
+        <p class="card__sub">Με τις περισσότερες εγγραφές</p>
+      </div>
+      <ol class="rank">
+        {% for c in stats.top_composers %}
+        <li class="rank__row">
+          <span class="rank__n">{{ '%02d'|format(loop.index) }}</span>
+          <span class="rank__body">
+            <span class="rank__name">{{ c.name }}</span>
+            <span class="rank__bar"><i style="width: {{ (c.count / cmax * 100)|round(2) }}%"></i></span>
+          </span>
+          <span class="rank__count">{{ c.count|gr }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+      <p class="card__note">Εξαιρούνται «παραδοσιακό» και άγνωστοι.</p>
+    </section>
+
+    <section class="card accent-brass">
+      <div class="card__head">
+        <p class="eyebrow">Δημιουργοί</p>
+        <h2 class="card__title">Στιχουργοί</h2>
+        <p class="card__sub">Με τις περισσότερες εγγραφές</p>
+      </div>
+      <ol class="rank">
+        {% for c in stats.top_lyricists %}
+        <li class="rank__row">
+          <span class="rank__n">{{ '%02d'|format(loop.index) }}</span>
+          <span class="rank__body">
+            <span class="rank__name">{{ c.name }}</span>
+            <span class="rank__bar"><i style="width: {{ (c.count / lmax * 100)|round(2) }}%"></i></span>
+          </span>
+          <span class="rank__count">{{ c.count|gr }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+      <p class="card__note">Εξαιρούνται «παραδοσιακό» και άγνωστοι.</p>
+    </section>
+
+    <section class="card accent-petrol">
+      <div class="card__head">
+        <p class="eyebrow">Ποιότητα</p>
+        <h2 class="card__title">Πληρότητα πεδίων</h2>
+        <p class="card__sub">Ποσοστό εγγραφών με συμπληρωμένο πεδίο</p>
+      </div>
+      <ul class="cov">
+        {% for f in stats.coverage %}
+        <li class="cov__row {% if f.pct < 20 %}cov__row--low{% endif %}">
+          <span class="cov__head">
+            <span class="cov__label">{{ f.label }}</span>
+            <span class="cov__pct">{{ f.pct }}%</span>
+          </span>
+          <span class="cov__track"><i class="cov__fill" style="width: {{ f.pct }}%"></i></span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card accent-brass">
+      <div class="card__head">
+        <p class="eyebrow">Μέσο</p>
+        <h2 class="card__title">Μορφές δίσκων</h2>
+        <p class="card__sub">Εγγραφές που αναφέρουν κάθε μορφή</p>
+      </div>
+      <ul class="chart">
+        {% for f in stats.formats %}
+        <li class="chart__row">
+          <span class="chart__key">{{ f.tag }}</span>
+          <span class="chart__track">
+            <i class="chart__fill" style="width: {{ (f.count / fmax * 100)|round(2) }}%"></i>
+          </span>
+          <span class="chart__val">{{ f.count|gr }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <footer class="foot">
+    Δεδομένα από το αρχείο «Τραγούδια». Χρονολογίες και μορφές εξάγονται
+    αυτόματα από τα πεδία «Αρχείο» και «Σημειώσεις».
+  </footer>
+
+</main>
+{% endblock %}

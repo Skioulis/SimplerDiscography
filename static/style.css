@@ -1,0 +1,399 @@
+/* ============================================================
+   Δισκογραφικό Αρχείο — dashboard styles
+   Palette drawn from the gramophone world: oxblood label red,
+   gramophone brass, petrol teal, on warm catalogue paper.
+   ============================================================ */
+
+:root {
+  --ink: #241c15;
+  --bg: #e7e3da;
+  --surface: #ffffff;
+  --surface-2: #f1ece1;
+  --oxblood: #8a2b23;
+  --brass: #a9782c;
+  --petrol: #1f5b60;
+  --muted: #7c7264;
+  --line: #ded6c8;
+  --accent: var(--petrol);
+
+  --font-display: "Palatino Linotype", Palatino, "URW Palladio L",
+    "Book Antiqua", Georgia, serif;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-mono: "SFMono-Regular", "DejaVu Sans Mono", "Cascadia Mono",
+    Consolas, "Liberation Mono", monospace;
+
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(36, 28, 21, .05), 0 18px 40px -30px rgba(36, 28, 21, .45);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1rem, 4vw, 2rem) 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* --- shared bits --------------------------------------------------------- */
+
+.eyebrow {
+  margin: 0;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+/* --- masthead ------------------------------------------------------------ */
+
+.masthead {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  padding: clamp(1rem, 2vw, 1.5rem) 0 1.5rem;
+}
+
+.masthead__disc {
+  position: relative;
+  width: clamp(168px, 26vw, 232px);
+  aspect-ratio: 1;
+}
+
+.disc {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 16px 26px rgba(36, 28, 21, .35));
+  animation: disc-in .8s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+.disc__label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .1rem;
+  pointer-events: none;
+}
+
+.disc__value {
+  font-family: var(--font-mono);
+  font-size: clamp(1.35rem, 3.2vw, 1.9rem);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  color: #f6f0e4;
+}
+
+.disc__unit {
+  font-size: .62rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: #e3c58f;
+}
+
+.masthead__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.9rem, 4.5vw, 2.9rem);
+  line-height: 1.08;
+  margin: .35rem 0 .5rem;
+  letter-spacing: -.01em;
+}
+
+.masthead__desc {
+  margin: 0 0 1.4rem;
+  max-width: 46ch;
+  color: var(--muted);
+  font-size: 1.02rem;
+}
+
+.kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 0;
+}
+
+.kpi {
+  padding: 0 1.5rem;
+  border-left: 1px solid var(--line);
+}
+.kpi:first-child { padding-left: 0; border-left: none; }
+
+.kpi__num {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1;
+}
+
+.kpi__label {
+  margin-top: .3rem;
+  font-size: .74rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* --- cards --------------------------------------------------------------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: clamp(1.2rem, 2.5vw, 1.75rem);
+  box-shadow: var(--shadow);
+}
+
+.card--feature { border-top: 3px solid var(--accent); }
+
+.card__head { margin-bottom: 1.2rem; }
+
+.card__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.35rem;
+  margin: .25rem 0 0;
+}
+
+.card__sub {
+  margin: .35rem 0 0;
+  color: var(--muted);
+  font-size: .9rem;
+  max-width: 60ch;
+}
+
+.card__note {
+  margin: 1rem 0 0;
+  font-size: .78rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+/* accent hooks per section */
+.accent-petrol { --accent: var(--petrol); }
+.accent-oxblood { --accent: var(--oxblood); }
+.accent-brass { --accent: var(--brass); }
+
+/* --- key/track/value chart (decades, formats) ---------------------------- */
+
+.chart {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.chart__row {
+  display: grid;
+  grid-template-columns: 3.4rem 1fr 3.4rem;
+  align-items: center;
+  gap: .8rem;
+}
+
+.chart__key {
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.chart__track {
+  height: 15px;
+  background: var(--surface-2);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.chart__fill {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--accent);
+  transform-origin: left center;
+  animation: grow .7s cubic-bezier(.2, .7, .2, 1) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+.chart__val {
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- ranked list (top composers / lyricists) ----------------------------- */
+
+.rank {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rank__row {
+  display: grid;
+  grid-template-columns: 1.8rem 1fr auto;
+  align-items: center;
+  column-gap: .8rem;
+  padding: .5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.rank__row:last-child { border-bottom: none; }
+
+.rank__n {
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  color: var(--brass);
+}
+
+.rank__body {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  min-width: 0;
+}
+
+.rank__name {
+  font-weight: 500;
+  font-size: .98rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rank__bar {
+  height: 3px;
+  background: var(--surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.rank__bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transform-origin: left center;
+  animation: grow .7s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+.rank__count {
+  font-family: var(--font-mono);
+  font-size: .9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- coverage (label above bar) ------------------------------------------ */
+
+.cov {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .8rem;
+}
+
+.cov__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: .35rem;
+}
+
+.cov__label {
+  font-size: .82rem;
+  letter-spacing: .06em;
+  color: var(--ink);
+}
+
+.cov__pct {
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cov__track {
+  display: block;
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cov__fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+  transform-origin: left center;
+  animation: grow .7s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+.cov__row--low .cov__fill { background: var(--oxblood); }
+.cov__row--low .cov__pct { color: var(--oxblood); }
+
+/* --- footer -------------------------------------------------------------- */
+
+.foot {
+  margin-top: .5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  font-size: .8rem;
+  color: var(--muted);
+  max-width: 70ch;
+}
+
+/* --- motion -------------------------------------------------------------- */
+
+@keyframes grow { from { transform: scaleX(0); } }
+@keyframes disc-in { from { opacity: 0; transform: scale(.9) rotate(-8deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; }
+  .chart__fill, .rank__bar i, .cov__fill { transform: none; }
+}
+
+/* --- responsive ---------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  .masthead {
+    grid-template-columns: 1fr;
+    justify-items: start;
+    text-align: left;
+  }
+  .grid { grid-template-columns: 1fr; }
+}
+
+:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}

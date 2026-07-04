@@ -9,7 +9,6 @@ from __future__ import annotations
 import os
 
 from flask import Flask
-from sqlalchemy import text
 
 from extensions import db, migrate
 
@@ -42,12 +41,9 @@ def create_app(config: dict | None = None) -> Flask:
 
     # Import models so their tables register with the metadata.
     from models import Song  # noqa: F401
+    from views import main
 
-    @app.route("/")
-    def index():
-        # Minimal smoke-test route confirming the DB is wired up.
-        count = db.session.execute(text("SELECT COUNT(*) FROM song")).scalar_one()
-        return f"SimpleDiscography: {count} songs"
+    app.register_blueprint(main)
 
     return app
 
