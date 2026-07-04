@@ -10,6 +10,19 @@ what the app does.
 
 ---
 
+## Get the code
+
+Clone the repository and enter it:
+
+```bash
+git clone https://github.com/Skioulis/SimplerDiscography.git
+cd SimplerDiscography
+```
+
+Prefer SSH? `git clone git@github.com:Skioulis/SimplerDiscography.git`
+
+---
+
 ## Option A — Docker (recommended)
 
 ### Prerequisites
