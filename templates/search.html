@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{% if q %}Αναζήτηση «{{ q }}»{% else %}Αναζήτηση{% endif %} — Δισκογραφικό Αρχείο{% endblock %}
+
+{% block content %}
+<main class="wrap wrap--search">
+  <header class="searchhead">
+    <p class="eyebrow">Αναζήτηση</p>
+    {% if q %}
+      <h1 class="searchhead__title">«{{ q }}»</h1>
+      <p class="searchhead__count">{{ total|gr }} αποτελέσματα</p>
+    {% else %}
+      <h1 class="searchhead__title">Αναζήτηση στο αρχείο</h1>
+    {% endif %}
+  </header>
+
+  {% if q and results %}
+    <ol class="results">
+      {% for r in results %}
+      {% set composer = r.composer if r.composer not in ('', '-') else '' %}
+      {% set lyricist = r.lyricist if r.lyricist not in ('', '-') else '' %}
+      <li class="result">
+        <a class="result__link" href="{{ url_for('main.record', song_id=r.id) }}">
+          <span class="result__title">{{ r.title or '—' }}</span>
+          <span class="result__meta">
+            {%- if composer %}{{ composer }}{% endif -%}
+            {%- if composer and lyricist %} · {% endif -%}
+            {%- if lyricist %}{{ lyricist }}{% endif -%}
+          </span>
+        </a>
+      </li>
+      {% endfor %}
+    </ol>
+    {% if total > results|length %}
+      <p class="searchnote">Εμφανίζονται τα πρώτα {{ results|length|gr }} από {{ total|gr }}.</p>
+    {% endif %}
+  {% elif q %}
+    <p class="searchnote">Δεν βρέθηκαν αποτελέσματα για «{{ q }}».</p>
+  {% else %}
+    <p class="searchnote">Πληκτρολογήστε έναν όρο στην μπάρα αναζήτησης.</p>
+  {% endif %}
+</main>
+{% endblock %}

@@ -4,8 +4,14 @@
     {
       "name": "discography",
       "runtimeExecutable": ".venv/bin/flask",
-      "runtimeArgs": ["--app", "app", "run", "--port", "5000"],
+      "runtimeArgs": ["--app", "app", "run", "--host", "0.0.0.0", "--port", "5000"],
       "port": 5000
+    },
+    {
+      "name": "discography-preview",
+      "runtimeExecutable": ".venv/bin/flask",
+      "runtimeArgs": ["--app", "app", "run", "--port", "5057"],
+      "port": 5057
     }
   ]
 }

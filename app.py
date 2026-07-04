@@ -32,6 +32,8 @@ def create_app(config: dict | None = None) -> Flask:
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    # Used to sign the session cookie for flash messages. Override in production.
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-discography-key")
     if config:
         app.config.update(config)
 

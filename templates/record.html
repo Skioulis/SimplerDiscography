@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ song.title or 'Εγγραφή' }} — Δισκογραφικό Αρχείο{% endblock %}
+
+{% macro textfield(name, label, value) %}
+<label class="form-label field-label" for="f-{{ name }}">{{ label }}</label>
+<input class="form-control record-field" id="f-{{ name }}" name="{{ name }}"
+       value="{{ value or '' }}" readonly autocomplete="off">
+{% endmacro %}
+
+{% macro areafield(name, label, value, rows) %}
+<label class="form-label field-label" for="f-{{ name }}">{{ label }}</label>
+<textarea class="form-control record-field" id="f-{{ name }}" name="{{ name }}"
+          rows="{{ rows }}" readonly>{{ value or '' }}</textarea>
+{% endmacro %}
+
+{% block content %}
+<main class="wrap wrap--record">
+{#<main class="wrap container">#}
+
+  <form class="card record{% if edit %} is-editing{% endif %}" method="post"
+        action="{{ url_for('main.record_save', song_id=song.id) }}">
+
+    <div class="card-header record__head">
+      <h1 class="record__heading h5 mb-0">Στοιχεία τραγουδιού</h1>
+      <label class="switch">
+        <input type="checkbox" class="switch__input" id="editToggle" {{ 'checked' if edit }}>
+        <span class="switch__track"><span class="switch__thumb"></span></span>
+        <span class="switch__text">Λειτουργία επεξεργασίας</span>
+      </label>
+    </div>
+
+    <div class="card-body record__grid">
+      <div class="row g-3">
+        <div class="col-md-4">{{ textfield('title', 'Τίτλος', song.title) }}</div>
+        <div class="col-md-4">{{ textfield('composer', 'Συνθέτης', song.composer) }}</div>
+        <div class="col-md-4">{{ textfield('lyricist', 'Στιχουργός', song.lyricist) }}</div>
+      </div>
+      <div class="row g-3 mt-1">
+        <div class="col-md-4">
+          <div class="mb-3">{{ areafield('lyrics', 'Στίχοι', song.lyrics, 14) }}</div>
+          {{ areafield('bibliography', 'Βιβλιογραφία', song.bibliography, 4) }}
+        </div>
+        <div class="col-md-8">
+          <div class="mb-3">{{ areafield('archive', 'Αρχείο', song.archive, 4) }}</div>
+          {{ areafield('notes', 'Σημειώσεις', song.notes, 11) }}
+        </div>
+      </div>
+    </div>
+
+    <div class="card-footer record__foot">
+      <nav class="pager" aria-label="Πλοήγηση εγγραφών">
+        {% if prev_id %}
+        <a class="pager__btn" href="{{ url_for('main.record', song_id=prev_id) }}" aria-label="Προηγούμενο">‹</a>
+        {% else %}
+        <span class="pager__btn is-disabled" aria-hidden="true">‹</span>
+        {% endif %}
+        <span class="pager__jump">
+          <input type="number" class="pager__input" name="id" form="gotoform"
+                 value="{{ song.id }}" min="1" max="{{ total }}" step="1"
+                 aria-label="Μετάβαση σε εγγραφή">
+          <span class="pager__total">/ {{ total|gr }}</span>
+        </span>
+        {% if next_id %}
+        <a class="pager__btn" href="{{ url_for('main.record', song_id=next_id) }}" aria-label="Επόμενο">›</a>
+        {% else %}
+        <span class="pager__btn is-disabled" aria-hidden="true">›</span>
+        {% endif %}
+      </nav>
+
+      <p class="record__meta">
+        Καταχωρήθηκε {{ song.created.strftime('%d/%m/%Y') }}
+        · Ενημερώθηκε {{ song.updated.strftime('%d/%m/%Y %H:%M') }}
+      </p>
+
+      <div class="record__actions">
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.record', song_id=song.id) }}">Ακύρωση</a>
+        <button type="submit" class="btn btn-primary">Αποθήκευση</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Standalone target for the pager jump box (can't nest a form in the record form). -->
+  <form id="gotoform" action="{{ url_for('main.goto') }}" method="get" hidden></form>
+</main>
+
+<script>
+  (function () {
+    var form = document.querySelector('.record');
+    var toggle = document.getElementById('editToggle');
+    var fields = form.querySelectorAll('.record-field');
+    function setEditing(on) {
+      form.classList.toggle('is-editing', on);
+      fields.forEach(function (el) { el.readOnly = !on; });
+    }
+    toggle.addEventListener('change', function (e) { setEditing(e.target.checked); });
+    setEditing(toggle.checked);
+  })();
+</script>
+{% endblock %}

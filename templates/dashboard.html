@@ -9,26 +9,28 @@
 
 <main class="wrap">
 
-  <header class="masthead">
-    <div class="masthead__disc">
-      <svg class="disc" viewBox="0 0 240 240" role="img"
-           aria-label="{{ stats.total|gr }} τραγούδια στο αρχείο">
-        <circle cx="120" cy="120" r="118" fill="#1c140f"/>
-        <circle cx="120" cy="120" r="118" fill="none" stroke="#b1802f" stroke-opacity=".35" stroke-width="1.5"/>
-        {% for r in range(72, 116, 5) %}
-        <circle cx="120" cy="120" r="{{ r }}" fill="none" stroke="#e9dec7" stroke-opacity=".06"/>
-        {% endfor %}
-        <circle cx="120" cy="120" r="66" fill="#8a2b23"/>
-        <circle cx="120" cy="120" r="66" fill="none" stroke="#b1802f" stroke-width="2.5"/>
-        <circle cx="120" cy="120" r="55" fill="none" stroke="#f2ede0" stroke-opacity=".22"/>
-      </svg>
-      <div class="disc__label">
-        <span class="disc__value">{{ stats.total|gr }}</span>
-        <span class="disc__unit">τραγούδια</span>
+  <header class="masthead row align-items-center g-4">
+    <div class="col-12 col-md-auto d-flex justify-content-center justify-content-md-start">
+      <div class="masthead__disc">
+        <svg class="disc" viewBox="0 0 240 240" role="img"
+             aria-label="{{ stats.total|gr }} τραγούδια στο αρχείο">
+          <circle cx="120" cy="120" r="118" fill="#1c140f"/>
+          <circle cx="120" cy="120" r="118" fill="none" stroke="#b1802f" stroke-opacity=".35" stroke-width="1.5"/>
+          {% for r in range(72, 116, 5) %}
+          <circle cx="120" cy="120" r="{{ r }}" fill="none" stroke="#e9dec7" stroke-opacity=".06"/>
+          {% endfor %}
+          <circle cx="120" cy="120" r="66" fill="#8a2b23"/>
+          <circle cx="120" cy="120" r="66" fill="none" stroke="#b1802f" stroke-width="2.5"/>
+          <circle cx="120" cy="120" r="55" fill="none" stroke="#f2ede0" stroke-opacity=".22"/>
+        </svg>
+        <div class="disc__label">
+          <span class="disc__value">{{ stats.total|gr }}</span>
+          <span class="disc__unit">τραγούδια</span>
+        </div>
       </div>
     </div>
 
-    <div class="masthead__intro">
+    <div class="col-12 col-md masthead__intro text-center text-md-start">
       <p class="eyebrow">Δισκογραφικό Αρχείο</p>
       <h1 class="masthead__title">Η συλλογή με μια ματιά</h1>
       <p class="masthead__desc">
@@ -74,86 +76,94 @@
     </ul>
   </section>
 
-  <div class="grid">
-    <section class="card accent-oxblood">
-      <div class="card__head">
-        <p class="eyebrow">Δημιουργοί</p>
-        <h2 class="card__title">Συνθέτες</h2>
-        <p class="card__sub">Με τις περισσότερες εγγραφές</p>
-      </div>
-      <ol class="rank">
-        {% for c in stats.top_composers %}
-        <li class="rank__row">
-          <span class="rank__n">{{ '%02d'|format(loop.index) }}</span>
-          <span class="rank__body">
-            <span class="rank__name">{{ c.name }}</span>
-            <span class="rank__bar"><i style="width: {{ (c.count / cmax * 100)|round(2) }}%"></i></span>
-          </span>
-          <span class="rank__count">{{ c.count|gr }}</span>
-        </li>
-        {% endfor %}
-      </ol>
-      <p class="card__note">Εξαιρούνται «παραδοσιακό» και άγνωστοι.</p>
-    </section>
+  <div class="row g-4">
+    <div class="col-12 col-md-6">
+      <section class="card h-100 accent-oxblood">
+        <div class="card__head">
+          <p class="eyebrow">Δημιουργοί</p>
+          <h2 class="card__title">Συνθέτες</h2>
+          <p class="card__sub">Με τις περισσότερες εγγραφές</p>
+        </div>
+        <ol class="rank">
+          {% for c in stats.top_composers %}
+          <li class="rank__row">
+            <span class="rank__n">{{ '%02d'|format(loop.index) }}</span>
+            <span class="rank__body">
+              <span class="rank__name">{{ c.name }}</span>
+              <span class="rank__bar"><i style="width: {{ (c.count / cmax * 100)|round(2) }}%"></i></span>
+            </span>
+            <span class="rank__count">{{ c.count|gr }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+        <p class="card__note">Εξαιρούνται «παραδοσιακό» και άγνωστοι.</p>
+      </section>
+    </div>
 
-    <section class="card accent-brass">
-      <div class="card__head">
-        <p class="eyebrow">Δημιουργοί</p>
-        <h2 class="card__title">Στιχουργοί</h2>
-        <p class="card__sub">Με τις περισσότερες εγγραφές</p>
-      </div>
-      <ol class="rank">
-        {% for c in stats.top_lyricists %}
-        <li class="rank__row">
-          <span class="rank__n">{{ '%02d'|format(loop.index) }}</span>
-          <span class="rank__body">
-            <span class="rank__name">{{ c.name }}</span>
-            <span class="rank__bar"><i style="width: {{ (c.count / lmax * 100)|round(2) }}%"></i></span>
-          </span>
-          <span class="rank__count">{{ c.count|gr }}</span>
-        </li>
-        {% endfor %}
-      </ol>
-      <p class="card__note">Εξαιρούνται «παραδοσιακό» και άγνωστοι.</p>
-    </section>
+    <div class="col-12 col-md-6">
+      <section class="card h-100 accent-brass">
+        <div class="card__head">
+          <p class="eyebrow">Δημιουργοί</p>
+          <h2 class="card__title">Στιχουργοί</h2>
+          <p class="card__sub">Με τις περισσότερες εγγραφές</p>
+        </div>
+        <ol class="rank">
+          {% for c in stats.top_lyricists %}
+          <li class="rank__row">
+            <span class="rank__n">{{ '%02d'|format(loop.index) }}</span>
+            <span class="rank__body">
+              <span class="rank__name">{{ c.name }}</span>
+              <span class="rank__bar"><i style="width: {{ (c.count / lmax * 100)|round(2) }}%"></i></span>
+            </span>
+            <span class="rank__count">{{ c.count|gr }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+        <p class="card__note">Εξαιρούνται «παραδοσιακό» και άγνωστοι.</p>
+      </section>
+    </div>
 
-    <section class="card accent-petrol">
-      <div class="card__head">
-        <p class="eyebrow">Ποιότητα</p>
-        <h2 class="card__title">Πληρότητα πεδίων</h2>
-        <p class="card__sub">Ποσοστό εγγραφών με συμπληρωμένο πεδίο</p>
-      </div>
-      <ul class="cov">
-        {% for f in stats.coverage %}
-        <li class="cov__row {% if f.pct < 20 %}cov__row--low{% endif %}">
-          <span class="cov__head">
-            <span class="cov__label">{{ f.label }}</span>
-            <span class="cov__pct">{{ f.pct }}%</span>
-          </span>
-          <span class="cov__track"><i class="cov__fill" style="width: {{ f.pct }}%"></i></span>
-        </li>
-        {% endfor %}
-      </ul>
-    </section>
+    <div class="col-12 col-md-6">
+      <section class="card h-100 accent-petrol">
+        <div class="card__head">
+          <p class="eyebrow">Ποιότητα</p>
+          <h2 class="card__title">Πληρότητα πεδίων</h2>
+          <p class="card__sub">Ποσοστό εγγραφών με συμπληρωμένο πεδίο</p>
+        </div>
+        <ul class="cov">
+          {% for f in stats.coverage %}
+          <li class="cov__row {% if f.pct < 20 %}cov__row--low{% endif %}">
+            <span class="cov__head">
+              <span class="cov__label">{{ f.label }}</span>
+              <span class="cov__pct">{{ f.pct }}%</span>
+            </span>
+            <span class="cov__track"><i class="cov__fill" style="width: {{ f.pct }}%"></i></span>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+    </div>
 
-    <section class="card accent-brass">
-      <div class="card__head">
-        <p class="eyebrow">Μέσο</p>
-        <h2 class="card__title">Μορφές δίσκων</h2>
-        <p class="card__sub">Εγγραφές που αναφέρουν κάθε μορφή</p>
-      </div>
-      <ul class="chart">
-        {% for f in stats.formats %}
-        <li class="chart__row">
-          <span class="chart__key">{{ f.tag }}</span>
-          <span class="chart__track">
-            <i class="chart__fill" style="width: {{ (f.count / fmax * 100)|round(2) }}%"></i>
-          </span>
-          <span class="chart__val">{{ f.count|gr }}</span>
-        </li>
-        {% endfor %}
-      </ul>
-    </section>
+    <div class="col-12 col-md-6">
+      <section class="card h-100 accent-brass">
+        <div class="card__head">
+          <p class="eyebrow">Μέσο</p>
+          <h2 class="card__title">Μορφές δίσκων</h2>
+          <p class="card__sub">Εγγραφές που αναφέρουν κάθε μορφή</p>
+        </div>
+        <ul class="chart">
+          {% for f in stats.formats %}
+          <li class="chart__row">
+            <span class="chart__key">{{ f.tag }}</span>
+            <span class="chart__track">
+              <i class="chart__fill" style="width: {{ (f.count / fmax * 100)|round(2) }}%"></i>
+            </span>
+            <span class="chart__val">{{ f.count|gr }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+    </div>
   </div>
 
   <footer class="foot">
