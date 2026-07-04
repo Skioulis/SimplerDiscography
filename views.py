@@ -8,6 +8,7 @@ from flask import (
     Blueprint,
     abort,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -21,7 +22,9 @@ from stats import dashboard_stats
 
 main = Blueprint("main", __name__)
 
-SEARCH_LIMIT = 100
+PAGE_SIZE = 25
+LIVE_SEARCH_LIMIT = 20
+MIN_SEARCH_LEN = 3
 
 
 @main.app_template_filter("gr")
@@ -48,6 +51,24 @@ def _neighbours(song_id: int) -> tuple[int | None, int | None]:
     prev_id = db.session.scalar(select(func.max(Song.id)).where(Song.id < song_id))
     next_id = db.session.scalar(select(func.min(Song.id)).where(Song.id > song_id))
     return prev_id, next_id
+
+
+def _page_window(page: int, total_pages: int, edge: int = 1, around: int = 2) -> list:
+    """Page numbers to show, with None marking an ellipsis gap."""
+    if total_pages <= 1:
+        return []
+    wanted = set(range(1, edge + 1))
+    wanted |= set(range(total_pages - edge + 1, total_pages + 1))
+    wanted |= set(range(page - around, page + around + 1))
+    ordered = sorted(p for p in wanted if 1 <= p <= total_pages)
+    out: list = []
+    prev = 0
+    for p in ordered:
+        if p - prev > 1:
+            out.append(None)
+        out.append(p)
+        prev = p
+    return out
 
 
 @main.route("/")
@@ -108,23 +129,69 @@ def record_save(song_id: int):
     return redirect(url_for("main.record", song_id=song_id))
 
 
-@main.route("/search")
-def search():
+@main.route("/api/search")
+def api_search():
+    """Live search for the modal. Returns JSON; empty until MIN_SEARCH_LEN chars."""
     q = (request.args.get("q") or "").strip()
     fts = _fts_query(q)
     results: list = []
     total = 0
-    if fts:
-        results = db.session.execute(
+    if len(q) >= MIN_SEARCH_LEN and fts:
+        rows = db.session.execute(
             text(
                 "SELECT s.id, s.title, s.composer, s.lyricist "
                 "FROM song_fts f JOIN song s ON s.id = f.rowid "
                 "WHERE song_fts MATCH :q ORDER BY rank LIMIT :lim"
             ),
-            {"q": fts, "lim": SEARCH_LIMIT},
+            {"q": fts, "lim": LIVE_SEARCH_LIMIT},
         ).all()
+        results = [
+            {"id": r.id, "title": r.title, "composer": r.composer, "lyricist": r.lyricist}
+            for r in rows
+        ]
         total = db.session.execute(
             text("SELECT COUNT(*) FROM song_fts WHERE song_fts MATCH :q"),
             {"q": fts},
         ).scalar_one()
-    return render_template("search.html", q=q, results=results, total=total, limit=SEARCH_LIMIT)
+    return jsonify({"results": results, "total": total})
+
+
+@main.route("/search")
+def search():
+    q = (request.args.get("q") or "").strip()
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (TypeError, ValueError):
+        page = 1
+
+    fts = _fts_query(q)
+    results: list = []
+    total = 0
+    total_pages = 0
+    if fts:
+        total = db.session.execute(
+            text("SELECT COUNT(*) FROM song_fts WHERE song_fts MATCH :q"),
+            {"q": fts},
+        ).scalar_one()
+        total_pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
+        if total_pages:
+            page = min(page, total_pages)
+        results = db.session.execute(
+            text(
+                "SELECT s.id, s.title, s.composer, s.lyricist "
+                "FROM song_fts f JOIN song s ON s.id = f.rowid "
+                "WHERE song_fts MATCH :q ORDER BY rank LIMIT :lim OFFSET :off"
+            ),
+            {"q": fts, "lim": PAGE_SIZE, "off": (page - 1) * PAGE_SIZE},
+        ).all()
+
+    return render_template(
+        "search.html",
+        q=q,
+        results=results,
+        total=total,
+        page=page,
+        total_pages=total_pages,
+        page_size=PAGE_SIZE,
+        page_items=_page_window(page, total_pages),
+    )

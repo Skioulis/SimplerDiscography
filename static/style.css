@@ -426,29 +426,51 @@ body {
 .app-nav .nav-link:hover,
 .app-nav .nav-link:focus { color: var(--ink); }
 
-.app-nav__search .form-control {
-  flex: 1 1 auto;
-  min-width: 0;
-  background: var(--surface-2);
-  border-color: var(--line);
-  border-radius: 999px 0 0 999px;
-}
-.app-nav__searchbtn {
-  border: 1px solid var(--line);
-  border-left: none;
-  background: var(--surface-2);
-  color: var(--muted);
-  border-radius: 0 999px 999px 0;
+/* navbar search: a button styled like a field that opens the search modal */
+.app-nav__searchtrigger {
   display: inline-flex;
   align-items: center;
+  gap: .5rem;
+  padding: .45rem .95rem;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: .9rem;
+  text-decoration: none;
+  cursor: text;
 }
-.app-nav__searchbtn:hover { color: var(--oxblood); }
-.app-nav__searchbtn svg { width: 18px; height: 18px; }
+.app-nav__searchtrigger:hover { border-color: var(--brass); color: var(--ink); }
+.app-nav__searchtrigger svg { width: 16px; height: 16px; flex: none; }
 
 @media (min-width: 992px) {
-  .app-nav__search { margin-left: auto; }
-  .app-nav__search .form-control { width: 240px; flex: 0 0 auto; }
+  .app-nav__searchtrigger { margin-left: auto; min-width: 240px; }
 }
+
+/* search modal */
+.search-modal .modal-header { gap: .75rem; align-items: center; }
+.search-modal__field {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex: 1 1 auto;
+  color: var(--muted);
+}
+.search-modal__field svg { width: 20px; height: 20px; flex: none; }
+.search-modal__field .form-control {
+  border: none;
+  box-shadow: none;
+  padding-left: 0;
+  font-size: 1.15rem;
+}
+.search-modal__field .form-control:focus { box-shadow: none; }
+.search-modal__hint { margin: .25rem .25rem 0; color: var(--muted); font-size: .9rem; }
+.search-modal__results { border: none; box-shadow: none; border-radius: 0; }
+.search-modal__results .result.is-active .result__link {
+  background: var(--surface-2);
+  box-shadow: inset 3px 0 0 var(--oxblood);
+}
+.search-modal .modal-footer { justify-content: center; }
 
 /* flash messages */
 .flash {
@@ -646,6 +668,24 @@ body {
 .result__title { font-weight: 500; }
 .result__meta { font-size: .82rem; color: var(--muted); }
 .searchnote { margin: .2rem 0 0; color: var(--muted); font-size: .9rem; }
+
+/* pagination themed to the palette */
+.pagination {
+  --bs-pagination-color: var(--ink);
+  --bs-pagination-bg: var(--surface);
+  --bs-pagination-border-color: var(--line);
+  --bs-pagination-hover-color: var(--oxblood);
+  --bs-pagination-hover-bg: var(--surface-2);
+  --bs-pagination-hover-border-color: var(--line);
+  --bs-pagination-focus-color: var(--oxblood);
+  --bs-pagination-focus-bg: var(--surface-2);
+  --bs-pagination-focus-box-shadow: 0 0 0 .2rem rgba(169, 120, 44, .2);
+  --bs-pagination-active-bg: var(--oxblood);
+  --bs-pagination-active-border-color: var(--oxblood);
+  --bs-pagination-disabled-color: var(--muted);
+  --bs-pagination-disabled-bg: var(--surface);
+  --bs-pagination-disabled-border-color: var(--line);
+}
 
 /* ============================================================
    Responsive (record + nav)

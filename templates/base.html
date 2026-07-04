@@ -32,17 +32,14 @@
           <li class="nav-item"><a class="nav-link" href="{{ url_for('main.record', song_id=1) }}">Περιήγηση</a></li>
         </ul>
 
-        <form class="d-flex app-nav__search" action="{{ url_for('main.search') }}"
-              method="get" role="search">
-          <input class="form-control" type="search" name="q" placeholder="Αναζήτηση…"
-                 value="{{ request.args.get('q', '') }}" aria-label="Αναζήτηση">
-          <button class="btn app-nav__searchbtn" type="submit" aria-label="Αναζήτηση">
-            <svg viewBox="0 0 20 20" aria-hidden="true">
-              <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/>
-              <line x1="12.5" y1="12.5" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </form>
+        <a class="app-nav__searchtrigger" href="{{ url_for('main.search') }}"
+           data-bs-toggle="modal" data-bs-target="#searchModal" role="button">
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/>
+            <line x1="12.5" y1="12.5" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Αναζήτηση…</span>
+        </a>
       </div>
     </div>
   </nav>
@@ -57,6 +54,135 @@
 
   {% block content %}{% endblock %}
 
+  <!-- Live search modal -->
+  <div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content search-modal">
+        <div class="modal-header">
+          <div class="search-modal__field">
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/>
+              <line x1="12.5" y1="12.5" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <input type="search" id="modalSearchInput" class="form-control"
+                   placeholder="Αναζήτηση στο αρχείο…" autocomplete="off" aria-label="Αναζήτηση">
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Κλείσιμο"></button>
+        </div>
+        <div class="modal-body">
+          <p class="search-modal__hint" id="modalSearchHint">Πληκτρολογήστε τουλάχιστον 3 χαρακτήρες.</p>
+          <ol class="results search-modal__results" id="modalSearchResults"></ol>
+        </div>
+        <div class="modal-footer">
+          <a class="btn btn-outline-secondary btn-sm" id="modalSearchAll" href="#" hidden></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}"></script>
+  <script>
+    (function () {
+      var modalEl = document.getElementById('searchModal');
+      if (!modalEl) return;
+      var input = document.getElementById('modalSearchInput');
+      var hint = document.getElementById('modalSearchHint');
+      var results = document.getElementById('modalSearchResults');
+      var allLink = document.getElementById('modalSearchAll');
+      var MIN = 3, timer = null, controller = null;
+      var items = [], active = -1;   // result anchors + highlighted index
+
+      function esc(s) {
+        return (s || '').replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+      function setHint(text) { hint.textContent = text; hint.hidden = false; }
+
+      function clearResults() { results.innerHTML = ''; items = []; active = -1; }
+      function setActive(i) {
+        if (active >= 0 && items[active]) items[active].parentNode.classList.remove('is-active');
+        active = i;
+        if (active >= 0 && items[active]) {
+          var li = items[active].parentNode;
+          li.classList.add('is-active');
+          li.scrollIntoView({ block: 'nearest' });
+        }
+      }
+
+      modalEl.addEventListener('shown.bs.modal', function () { input.focus(); input.select(); });
+
+      function render(data, q) {
+        clearResults();
+        if (!data.results.length) {
+          setHint('Δεν βρέθηκαν αποτελέσματα για «' + q + '».');
+          allLink.hidden = true;
+          return;
+        }
+        hint.hidden = true;
+        data.results.forEach(function (r) {
+          var meta = [r.composer, r.lyricist]
+            .filter(function (x) { return x && x !== '-'; }).join(' · ');
+          var li = document.createElement('li');
+          li.className = 'result';
+          li.innerHTML = '<a class="result__link" href="/songs/' + r.id + '">'
+            + '<span class="result__title">' + esc(r.title || '—') + '</span>'
+            + '<span class="result__meta">' + esc(meta) + '</span></a>';
+          results.appendChild(li);
+        });
+        items = Array.prototype.slice.call(results.querySelectorAll('.result__link'));
+        allLink.href = '/search?q=' + encodeURIComponent(q);
+        allLink.textContent = 'Όλα τα ' + data.total.toLocaleString('el') + ' αποτελέσματα';
+        allLink.hidden = data.total <= data.results.length;
+      }
+
+      input.addEventListener('input', function () {
+        var q = input.value.trim();
+        clearTimeout(timer);
+        if (q.length < MIN) {
+          clearResults();
+          setHint('Πληκτρολογήστε τουλάχιστον ' + MIN + ' χαρακτήρες.');
+          allLink.hidden = true;
+          return;
+        }
+        timer = setTimeout(function () {
+          if (controller) controller.abort();
+          controller = new AbortController();
+          fetch('/api/search?q=' + encodeURIComponent(q), { signal: controller.signal })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { render(d, q); })
+            .catch(function (e) { if (e.name !== 'AbortError') setHint('Σφάλμα αναζήτησης.'); });
+        }, 200);
+      });
+
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown') {
+          if (!items.length) return;
+          e.preventDefault();
+          setActive(active < items.length - 1 ? active + 1 : 0);
+        } else if (e.key === 'ArrowUp') {
+          if (!items.length) return;
+          e.preventDefault();
+          setActive(active > 0 ? active - 1 : items.length - 1);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (active >= 0 && items[active]) {
+            window.location = items[active].getAttribute('href');
+          } else {
+            var q = input.value.trim();
+            if (q) window.location = '/search?q=' + encodeURIComponent(q);
+          }
+        }
+      });
+
+      // keep mouse hover and keyboard highlight in sync
+      results.addEventListener('mousemove', function (e) {
+        var link = e.target.closest ? e.target.closest('.result__link') : null;
+        if (!link) return;
+        var idx = items.indexOf(link);
+        if (idx !== -1 && idx !== active) setActive(idx);
+      });
+    })();
+  </script>
 </body>
 </html>

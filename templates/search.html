@@ -30,8 +30,39 @@
       </li>
       {% endfor %}
     </ol>
-    {% if total > results|length %}
-      <p class="searchnote">Εμφανίζονται τα πρώτα {{ results|length|gr }} από {{ total|gr }}.</p>
+
+    {% set first = (page - 1) * page_size + 1 %}
+    {% set last = first + results|length - 1 %}
+    <p class="searchnote">Αποτελέσματα {{ first|gr }}–{{ last|gr }} από {{ total|gr }}.</p>
+
+    {% if total_pages > 1 %}
+    <nav class="d-flex justify-content-center mt-3" aria-label="Σελιδοποίηση αποτελεσμάτων">
+      <ul class="pagination">
+        <li class="page-item {{ 'disabled' if page <= 1 }}">
+          {% if page <= 1 %}
+          <span class="page-link" aria-hidden="true">‹</span>
+          {% else %}
+          <a class="page-link" href="{{ url_for('main.search', q=q, page=page-1) }}" aria-label="Προηγούμενη">‹</a>
+          {% endif %}
+        </li>
+        {% for p in page_items %}
+          {% if p is none %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% else %}
+          <li class="page-item {{ 'active' if p == page }}">
+            <a class="page-link" href="{{ url_for('main.search', q=q, page=p) }}">{{ p|gr }}</a>
+          </li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if page >= total_pages }}">
+          {% if page >= total_pages %}
+          <span class="page-link" aria-hidden="true">›</span>
+          {% else %}
+          <a class="page-link" href="{{ url_for('main.search', q=q, page=page+1) }}" aria-label="Επόμενη">›</a>
+          {% endif %}
+        </li>
+      </ul>
+    </nav>
     {% endif %}
   {% elif q %}
     <p class="searchnote">Δεν βρέθηκαν αποτελέσματα για «{{ q }}».</p>
