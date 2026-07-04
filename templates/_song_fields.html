@@ -1,0 +1,32 @@
+{# Shared song field grid — used by both the record view/edit and the new-song form. #}
+
+{% macro textfield(name, label, value, readonly=True) %}
+<label class="form-label field-label" for="f-{{ name }}">{{ label }}</label>
+<input class="form-control record-field" id="f-{{ name }}" name="{{ name }}"
+       value="{{ value or '' }}" {% if readonly %}readonly{% endif %} autocomplete="off">
+{% endmacro %}
+
+{% macro areafield(name, label, value, rows, readonly=True) %}
+<label class="form-label field-label" for="f-{{ name }}">{{ label }}</label>
+<textarea class="form-control record-field" id="f-{{ name }}" name="{{ name }}"
+          rows="{{ rows }}" {% if readonly %}readonly{% endif %}>{{ value or '' }}</textarea>
+{% endmacro %}
+
+{% macro song_fields(song, editable=False) %}
+{% set ro = not editable %}
+<div class="row g-3">
+  <div class="col-md-4">{{ textfield('title', 'Τίτλος', song.title, ro) }}</div>
+  <div class="col-md-4">{{ textfield('composer', 'Συνθέτης', song.composer, ro) }}</div>
+  <div class="col-md-4">{{ textfield('lyricist', 'Στιχουργός', song.lyricist, ro) }}</div>
+</div>
+<div class="row g-3 mt-1">
+  <div class="col-md-4">
+    <div class="mb-3">{{ areafield('lyrics', 'Στίχοι', song.lyrics, 14, ro) }}</div>
+    {{ areafield('bibliography', 'Βιβλιογραφία', song.bibliography, 4, ro) }}
+  </div>
+  <div class="col-md-8">
+    <div class="mb-3">{{ areafield('archive', 'Αρχείο', song.archive, 4, ro) }}</div>
+    {{ areafield('notes', 'Σημειώσεις', song.notes, 11, ro) }}
+  </div>
+</div>
+{% endmacro %}

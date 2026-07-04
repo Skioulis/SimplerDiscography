@@ -76,6 +76,23 @@ def dashboard():
     return render_template("dashboard.html", stats=dashboard_stats())
 
 
+@main.route("/songs/new")
+def song_new():
+    """Blank form for adding a song (same layout as the record view)."""
+    return render_template("new.html", song=Song())
+
+
+@main.route("/songs/new", methods=["POST"])
+def song_create():
+    song = Song()
+    for attr in Song.SEARCHABLE_FIELDS:
+        setattr(song, attr, (request.form.get(attr) or "").strip())
+    db.session.add(song)
+    db.session.commit()  # sets search_blob + timestamps, FTS trigger indexes it
+    flash("Το τραγούδι προστέθηκε.")
+    return redirect(url_for("main.record", song_id=song.id))
+
+
 @main.route("/songs/<int:song_id>")
 def record(song_id: int):
     song = db.session.get(Song, song_id)
@@ -127,6 +144,21 @@ def record_save(song_id: int):
     db.session.commit()  # bumps `updated`, resyncs search_blob + FTS
     flash("Οι αλλαγές αποθηκεύτηκαν.")
     return redirect(url_for("main.record", song_id=song_id))
+
+
+@main.route("/songs/<int:song_id>/delete", methods=["POST"])
+def song_delete(song_id: int):
+    song = db.session.get(Song, song_id)
+    if song is None:
+        abort(404)
+    prev_id, next_id = _neighbours(song_id)
+    db.session.delete(song)
+    db.session.commit()  # AFTER DELETE trigger removes it from the FTS index
+    flash("Το τραγούδι διαγράφηκε.")
+    target = next_id or prev_id
+    if target:
+        return redirect(url_for("main.record", song_id=target))
+    return redirect(url_for("main.dashboard"))
 
 
 @main.route("/api/search")

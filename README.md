@@ -93,4 +93,5 @@ Dockerfile, docker-compose.yaml, docker/entrypoint.sh
 
 ## Deployment
 
-See **[SETUP.md](SETUP.md)** for full instructions (Docker and local development).
+- **[SETUP.md](SETUP.md)** — first-time install (Docker and local development).
+- **[UPDATING.md](UPDATING.md)** — rolling out code changes, migrations, and rollback.

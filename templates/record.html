@@ -1,21 +1,9 @@
 {% extends "base.html" %}
+{% from "_song_fields.html" import song_fields %}
 {% block title %}{{ song.title or 'Εγγραφή' }} — Δισκογραφικό Αρχείο{% endblock %}
-
-{% macro textfield(name, label, value) %}
-<label class="form-label field-label" for="f-{{ name }}">{{ label }}</label>
-<input class="form-control record-field" id="f-{{ name }}" name="{{ name }}"
-       value="{{ value or '' }}" readonly autocomplete="off">
-{% endmacro %}
-
-{% macro areafield(name, label, value, rows) %}
-<label class="form-label field-label" for="f-{{ name }}">{{ label }}</label>
-<textarea class="form-control record-field" id="f-{{ name }}" name="{{ name }}"
-          rows="{{ rows }}" readonly>{{ value or '' }}</textarea>
-{% endmacro %}
 
 {% block content %}
 <main class="wrap wrap--record">
-{#<main class="wrap container">#}
 
   <form class="card record{% if edit %} is-editing{% endif %}" method="post"
         action="{{ url_for('main.record_save', song_id=song.id) }}">
@@ -30,21 +18,7 @@
     </div>
 
     <div class="card-body record__grid">
-      <div class="row g-3">
-        <div class="col-md-4">{{ textfield('title', 'Τίτλος', song.title) }}</div>
-        <div class="col-md-4">{{ textfield('composer', 'Συνθέτης', song.composer) }}</div>
-        <div class="col-md-4">{{ textfield('lyricist', 'Στιχουργός', song.lyricist) }}</div>
-      </div>
-      <div class="row g-3 mt-1">
-        <div class="col-md-4">
-          <div class="mb-3">{{ areafield('lyrics', 'Στίχοι', song.lyrics, 14) }}</div>
-          {{ areafield('bibliography', 'Βιβλιογραφία', song.bibliography, 4) }}
-        </div>
-        <div class="col-md-8">
-          <div class="mb-3">{{ areafield('archive', 'Αρχείο', song.archive, 4) }}</div>
-          {{ areafield('notes', 'Σημειώσεις', song.notes, 11) }}
-        </div>
-      </div>
+      {{ song_fields(song) }}
     </div>
 
     <div class="card-footer record__foot">
@@ -73,6 +47,8 @@
       </p>
 
       <div class="record__actions">
+        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal"
+                data-bs-target="#deleteModal">Διαγραφή</button>
         <a class="btn btn-outline-secondary" href="{{ url_for('main.record', song_id=song.id) }}">Ακύρωση</a>
         <button type="submit" class="btn btn-primary">Αποθήκευση</button>
       </div>
@@ -82,6 +58,28 @@
   <!-- Standalone target for the pager jump box (can't nest a form in the record form). -->
   <form id="gotoform" action="{{ url_for('main.goto') }}" method="get" hidden></form>
 </main>
+
+<!-- Delete confirmation -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="deleteModalLabel">Διαγραφή τραγουδιού</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Κλείσιμο"></button>
+      </div>
+      <div class="modal-body">
+        Σίγουρα θέλετε να διαγράψετε «{{ song.title or 'αυτή την εγγραφή' }}»;
+        Η ενέργεια δεν μπορεί να αναιρεθεί.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Ακύρωση</button>
+        <form method="post" action="{{ url_for('main.song_delete', song_id=song.id) }}" class="m-0">
+          <button type="submit" class="btn btn-danger">Διαγραφή</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
   (function () {

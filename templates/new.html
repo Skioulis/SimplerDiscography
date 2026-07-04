@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_song_fields.html" import song_fields %}
+{% block title %}Νέο τραγούδι — Δισκογραφικό Αρχείο{% endblock %}
+
+{% block content %}
+<main class="wrap wrap--record">
+
+  <form class="card record is-editing" method="post" action="{{ url_for('main.song_create') }}">
+
+    <div class="card-header record__head">
+      <h1 class="record__heading h5 mb-0">Νέο τραγούδι</h1>
+    </div>
+
+    <div class="card-body record__grid">
+      {{ song_fields(song, editable=True) }}
+    </div>
+
+    <div class="card-footer record__foot record__foot--new">
+      <div class="record__actions">
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.dashboard') }}">Ακύρωση</a>
+        <button type="submit" class="btn btn-primary">Προσθήκη</button>
+      </div>
+    </div>
+  </form>
+
+</main>
+{% endblock %}
