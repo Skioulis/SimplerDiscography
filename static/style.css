@@ -492,7 +492,8 @@ body {
    Record view / edit form
    ============================================================ */
 
-.wrap--record { max-width: 1120px; }
+/* ~80% of the viewport on wide monitors, but never narrower than 1120px */
+.wrap--record { max-width: max(1120px, 80vw); }
 .wrap--search { max-width: 820px; }
 
 .record {

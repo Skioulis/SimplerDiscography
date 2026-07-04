@@ -13,7 +13,9 @@ from flask import Flask
 from extensions import db, migrate
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DB_PATH = os.path.join(BASE_DIR, "discography.db")
+# Overridable so the database and media can live on mounted volumes in Docker.
+DB_PATH = os.environ.get("DISCOGRAPHY_DB", os.path.join(BASE_DIR, "discography.db"))
+MEDIA_DIR = os.environ.get("MEDIA_DIR", os.path.join(BASE_DIR, "media"))
 
 
 def _include_object(obj, name, type_, reflected, compare_to):
@@ -32,6 +34,10 @@ def create_app(config: dict | None = None) -> Flask:
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    # Wait up to 15s on a locked SQLite file (helps with multiple gunicorn workers).
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"connect_args": {"timeout": 15}}
+    # Where audio/image files live (mounted volume in Docker). Used later.
+    app.config["MEDIA_DIR"] = MEDIA_DIR
     # Used to sign the session cookie for flash messages. Override in production.
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-discography-key")
     if config:

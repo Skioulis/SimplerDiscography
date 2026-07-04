@@ -1,0 +1,17 @@
+.venv/
+.git/
+.gitignore
+.idea/
+.claude/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+# local database — the container builds its own on the mounted volume
+discography.db
+# local media dir — mounted as a volume in the container
+media/
+# reference design images are not needed in the image (keep the CSV for seeding)
+files/*.jpeg
+files/*.jpg
+files/*.png

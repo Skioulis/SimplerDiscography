@@ -1,0 +1,21 @@
+services:
+  web:
+    build: .
+    image: simplediscography
+    container_name: simplediscography
+    ports:
+      - "5000:5000"
+    environment:
+      # Database lives on the db_data volume; media on the media_data volume.
+      DISCOGRAPHY_DB: /data/db/discography.db
+      MEDIA_DIR: /data/media
+      SECRET_KEY: ${SECRET_KEY:-please-change-me}
+      WEB_CONCURRENCY: 3
+    volumes:
+      - db_data:/data/db
+      - media_data:/data/media
+    restart: unless-stopped
+
+volumes:
+  db_data:      # SQLite database
+  media_data:   # audio files & images (added later)
