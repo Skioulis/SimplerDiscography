@@ -1,0 +1,613 @@
+/* =====================================================================
+   Σάκης Collection — Sakis Collection design system
+   A faded-vintage record-sleeve theme: cream paper, sage vinyl, dusty
+   rose, ink slate. Type in Alegreya / Alegreya Sans / Space Mono.
+   Loaded AFTER Bootstrap 5.3, so it overrides Bootstrap's CSS variables.
+   ===================================================================== */
+
+/* ------------------------------------------------------------------ */
+/* 1. Design tokens (verbatim from the design system)                  */
+/* ------------------------------------------------------------------ */
+:root {
+    /* Brand palette */
+    --cream:        #FBF3D5;
+    --sage-pale:    #D6DAC8;
+    --sage:         #9CAFAA;
+    --rose:         #D6A99D;
+    --ink:          #1F2937;
+
+    /* Paper (page / surfaces) */
+    --paper-50:     #FEFBEF;
+    --paper-100:    #FBF3D5;
+    --paper-200:    #F3E9C4;
+    --paper-300:    #E8DBAE;
+
+    /* Sage scale */
+    --sage-100:     #E4E7DB;
+    --sage-200:     #D6DAC8;
+    --sage-300:     #BCC6B8;
+    --sage-400:     #9CAFAA;
+    --sage-500:     #7E938D;
+    --sage-600:     #5F716C;
+
+    /* Rose scale */
+    --rose-100:     #F0DCD5;
+    --rose-200:     #E4C3B8;
+    --rose-300:     #D6A99D;
+    --rose-400:     #C28A7B;
+    --rose-500:     #A96B5B;
+
+    /* Ink scale */
+    --ink-900:      #1F2937;
+    --ink-700:      #3D4654;
+    --ink-500:      #6B7280;
+    --ink-300:      #9CA3AF;
+    --ink-100:      #D8D6CC;
+
+    /* Status / social */
+    --status-email:    #EA4335;
+    --status-linkedin: #0A66C2;
+    --status-github:   #181717;
+    --status-success:  #6E8B6A;
+    --status-warning:  #C9A24B;
+    --status-danger:   #B4524A;
+
+    /* Surfaces */
+    --surface-page:   var(--paper-100);
+    --surface-raised: #FFFDF4;
+    --surface-sunken: var(--sage-200);
+    --surface-nav:    var(--sage-200);
+
+    /* Text */
+    --text-body:    var(--ink-900);
+    --text-muted:   var(--ink-500);
+    --text-inverse: var(--paper-50);
+    --text-accent:  var(--rose-500);
+
+    /* Accents */
+    --accent-primary:        var(--rose-300);
+    --accent-primary-strong: var(--rose-500);
+    --accent-secondary:      var(--sage-400);
+
+    /* Borders & focus */
+    --border-soft:   rgba(31, 41, 55, 0.10);
+    --border-medium: rgba(31, 41, 55, 0.18);
+    --focus-ring:    var(--sage-500);
+    --focus-shadow:  0 0 0 3px rgba(126, 147, 141, 0.25);
+
+    /* Fonts */
+    --font-display: 'Alegreya', Georgia, 'Times New Roman', serif;
+    --font-body:    'Alegreya Sans', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+    --font-mono:    'Space Mono', 'SFMono-Regular', ui-monospace, monospace;
+
+    /* Radius */
+    --radius-xs:   4px;
+    --radius-sm:   8px;
+    --radius-md:   12px;
+    --radius-lg:   18px;
+    --radius-xl:   28px;
+    --radius-pill: 999px;
+    --radius-disc: 50%;
+
+    /* Shadows */
+    --shadow-xs:   0 1px 2px rgba(31, 41, 55, 0.06);
+    --shadow-sm:   0 2px 6px rgba(31, 41, 55, 0.08);
+    --shadow-md:   0 6px 16px rgba(31, 41, 55, 0.10);
+    --shadow-lg:   0 16px 40px rgba(31, 41, 55, 0.14);
+    --shadow-disc: 0 10px 30px rgba(31, 41, 55, 0.22);
+
+    /* Motion */
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-fast: 0.15s;
+    --duration-base: 0.3s;
+    --ease:          var(--duration-base) var(--ease-standard);
+    --spin-duration: 30s;
+
+    /* ---- Bootstrap runtime variable overrides ---- */
+    --bs-body-bg:            transparent;
+    --bs-body-color:         var(--ink-900);
+    --bs-body-font-family:   var(--font-body);
+    --bs-emphasis-color:     var(--ink-900);
+    --bs-secondary-color:    var(--ink-500);
+    --bs-tertiary-color:     var(--ink-500);
+    --bs-border-color:       var(--border-soft);
+    --bs-border-radius:      var(--radius-md);
+
+    --bs-primary:            var(--rose-400);
+    --bs-primary-rgb:        194, 138, 123;
+    --bs-secondary-rgb:      156, 175, 170;
+    --bs-success-rgb:        110, 139, 106;
+    --bs-info-rgb:           126, 147, 141;
+    --bs-warning-rgb:        201, 162, 75;
+    --bs-danger-rgb:         180, 82, 74;
+
+    --bs-link-color:         var(--rose-500);
+    --bs-link-color-rgb:     169, 107, 91;
+    --bs-link-hover-color:   var(--rose-400);
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. Base layout                                                      */
+/* ------------------------------------------------------------------ */
+body {
+    background:
+            radial-gradient(800px 520px at 92% -8%, rgba(156, 175, 170, 0.30), transparent 60%),
+            radial-gradient(720px 480px at -6% 108%, rgba(214, 169, 157, 0.26), transparent 60%),
+            var(--surface-page);
+    background-attachment: fixed;
+    margin: 0;
+    color: var(--ink-900);
+    font-family: var(--font-body);
+    font-size: 1.0625rem;
+    -webkit-font-smoothing: antialiased;
+}
+
+main {
+    margin: 0 auto;
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    color: var(--ink-900);
+    padding-bottom: 3rem;
+}
+
+/* Headings: literary display serif */
+h1, h2, h3, h4, h5, .card-title, .navbar-brand {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+    color: var(--ink-900);
+}
+h1, h2 { font-weight: 800; }
+h3, h4, h5 { font-weight: 700; }
+
+/* Catalogue ids / technical meta in mono */
+.mono, .text-mono, code, .sakisid { font-family: var(--font-mono); }
+
+/* Tiny ALL-CAPS section labels with wide tracking */
+.eyebrow, .card-subtitle.eyebrow {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-500);
+}
+
+/* Centered page titles get a small decorative vinyl underline */
+main h1.text-center {
+    font-weight: 800;
+    color: var(--ink-900);
+    margin-bottom: 2rem !important;
+    position: relative;
+    padding-bottom: 0.75rem;
+}
+main h1.text-center::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 64px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(90deg, var(--rose-300), var(--sage-400));
+}
+
+/* ------------------------------------------------------------------ */
+/* 3. Decorative spinning vinyl background                             */
+/* ------------------------------------------------------------------ */
+.img-background {
+    z-index: -1;
+    position: fixed;
+    top: auto;
+    bottom: -22%;
+    left: auto;
+    right: -14%;
+    width: 46vw;
+    max-width: 720px;
+    transform: none;
+    opacity: 0.14;
+    filter: blur(2px);
+    -webkit-filter: blur(2px);
+    pointer-events: none;
+}
+.img-background img { width: 100%; height: auto; }
+
+@keyframes rotate-disc {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.rotate-animation-disc {
+    animation: rotate-disc var(--spin-duration) linear infinite;
+    transform-origin: center;
+    border-radius: var(--radius-disc);
+}
+
+/* ------------------------------------------------------------------ */
+/* 4. Navbar — rounded floating sage bar                               */
+/* ------------------------------------------------------------------ */
+.navbar {
+    margin-top: 20px;
+    background-color: var(--surface-nav);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 0.5rem 1rem;
+}
+.navbar-brand {
+    font-weight: 800;
+    color: var(--ink-900);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+.navbar-brand:hover { color: var(--rose-500); }
+
+.navbar .nav-link {
+    color: var(--ink-900);
+    font-family: var(--font-body);
+    font-weight: 500;
+    border-radius: var(--radius-pill);
+    padding: 0.4rem 0.9rem !important;
+    transition: background-color var(--ease), color var(--ease);
+}
+.navbar .nav-link .navbar-text { color: inherit; }
+.navbar .nav-link:hover {
+    background-color: var(--sage-100);
+    color: var(--ink-900);
+}
+.navbar .nav-link.active,
+.navbar .nav-link.active .navbar-text {
+    background-color: var(--surface-raised);
+    color: var(--ink-900) !important;
+    font-weight: 700;
+    box-shadow: var(--shadow-xs);
+}
+.navbar .nav-link.disabled { display: none; }
+
+.navbar .dropdown-menu {
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    background: var(--surface-raised);
+    padding: 0.4rem;
+}
+.navbar .dropdown-menu .nav-link { border-radius: var(--radius-sm); }
+.navbar .dropdown-menu .nav-link:hover { background: var(--sage-100); }
+
+/* Search controls in navbar */
+.navbar .form-select,
+.navbar .form-control {
+    border-color: var(--border-medium);
+    background-color: var(--surface-raised);
+    border-radius: var(--radius-pill);
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. Greek alphabet filter                                            */
+/* ------------------------------------------------------------------ */
+.greek-filter-panel {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.greek-filter-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+.greek-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.greek-filter--latin {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--border-soft);
+}
+.greek-chip {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    color: var(--ink-700);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: background var(--duration-fast) var(--ease-standard),
+                border-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
+}
+.greek-chip--all { min-width: auto; padding: 0 16px; }
+.greek-chip:hover {
+    background: var(--sage-300);
+    border-color: var(--sage-500);
+    color: var(--ink-900);
+}
+.greek-chip.active {
+    color: var(--paper-50);
+    background: var(--ink-900);
+    border-color: var(--ink-900);
+    box-shadow: var(--shadow-sm);
+}
+.greek-chip.disabled {
+    color: var(--ink-300);
+    background: transparent;
+    border-color: var(--border-soft);
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* 6. Cards                                                            */
+/* ------------------------------------------------------------------ */
+.card {
+    --bs-card-bg: var(--surface-raised);
+    --bs-card-border-color: var(--border-soft);
+    --bs-card-border-radius: var(--radius-md);
+    --bs-card-inner-border-radius: calc(var(--radius-md) - 1px);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--duration-base) var(--ease-out),
+                box-shadow var(--duration-base) var(--ease-out);
+    overflow: hidden;
+}
+/* Lift list cards on hover (only the grid cards, not the detail panel) */
+.row .col > .card.h-100:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+.card.shadow { box-shadow: var(--shadow-md) !important; }
+
+.card-title {
+    color: var(--rose-500);
+    font-weight: 700;
+    font-size: 1.375rem;
+    line-height: 1.25;
+}
+.card-subtitle { color: var(--ink-500) !important; font-weight: 500; }
+
+.card-footer {
+    background: transparent;
+    border-top: 1px solid var(--border-soft) !important;
+    padding-top: 0.85rem;
+}
+
+.card-header {
+    border-bottom: 0;
+    padding: 1rem 1.25rem;
+    font-family: var(--font-display);
+}
+.card-header .card-title { color: inherit; }
+
+/* ------------------------------------------------------------------ */
+/* 7. Buttons — soft pills                                             */
+/* ------------------------------------------------------------------ */
+.btn {
+    --bs-btn-font-family: var(--font-body);
+    --bs-btn-font-weight: 700;
+    --bs-btn-border-radius: var(--radius-pill);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-xs);
+    transition: transform var(--duration-fast) var(--ease-standard),
+                filter var(--duration-fast) var(--ease-standard),
+                background-color var(--ease), color var(--ease),
+                box-shadow var(--ease);
+}
+.btn:hover { filter: brightness(0.96); }
+.btn:active { transform: scale(0.96); }
+.btn-lg { --bs-btn-border-radius: var(--radius-md); border-radius: var(--radius-md); }
+
+/* Solid — primary = dusty rose, success = sage */
+.btn-primary {
+    --bs-btn-bg: var(--rose-300); --bs-btn-border-color: var(--rose-400);
+    --bs-btn-hover-bg: var(--rose-300); --bs-btn-hover-border-color: var(--rose-400);
+    --bs-btn-active-bg: var(--rose-400); --bs-btn-active-border-color: var(--rose-500);
+    --bs-btn-disabled-bg: var(--rose-300); --bs-btn-disabled-border-color: var(--rose-400);
+    --bs-btn-color: var(--ink-900); --bs-btn-hover-color: var(--ink-900); --bs-btn-active-color: var(--ink-900);
+}
+.btn-success {
+    --bs-btn-bg: var(--sage-400); --bs-btn-border-color: var(--sage-500);
+    --bs-btn-hover-bg: var(--sage-400); --bs-btn-hover-border-color: var(--sage-500);
+    --bs-btn-active-bg: var(--sage-500); --bs-btn-active-border-color: var(--sage-600);
+    --bs-btn-color: var(--ink-900); --bs-btn-hover-color: var(--ink-900);
+}
+.btn-warning {
+    --bs-btn-bg: var(--status-warning); --bs-btn-border-color: var(--status-warning);
+    --bs-btn-hover-bg: var(--status-warning); --bs-btn-hover-border-color: var(--status-warning);
+    --bs-btn-color: var(--ink-900); --bs-btn-hover-color: var(--ink-900);
+}
+.btn-info {
+    --bs-btn-bg: var(--sage-300); --bs-btn-border-color: var(--sage-400);
+    --bs-btn-color: var(--ink-900); --bs-btn-hover-color: var(--ink-900);
+}
+.btn-danger {
+    --bs-btn-bg: var(--status-danger); --bs-btn-border-color: var(--status-danger);
+    --bs-btn-color: var(--paper-50); --bs-btn-hover-color: var(--paper-50);
+}
+
+/* Outline — View = rose outline, Edit = ghost, Delete = danger outline */
+.btn-outline-primary {
+    --bs-btn-color: var(--rose-500); --bs-btn-border-color: var(--rose-400);
+    --bs-btn-hover-bg: var(--rose-300); --bs-btn-hover-border-color: var(--rose-400); --bs-btn-hover-color: var(--ink-900);
+    --bs-btn-active-bg: var(--rose-400); --bs-btn-active-border-color: var(--rose-500); --bs-btn-active-color: var(--ink-900);
+}
+.btn-outline-warning {
+    --bs-btn-color: var(--ink-700); --bs-btn-border-color: var(--border-medium);
+    --bs-btn-hover-bg: var(--sage-100); --bs-btn-hover-border-color: var(--sage-400); --bs-btn-hover-color: var(--ink-900);
+}
+.btn-outline-success {
+    --bs-btn-color: var(--sage-600); --bs-btn-border-color: var(--sage-400);
+    --bs-btn-hover-bg: var(--sage-400); --bs-btn-hover-border-color: var(--sage-500); --bs-btn-hover-color: var(--ink-900);
+}
+.btn-outline-danger {
+    --bs-btn-color: var(--status-danger); --bs-btn-border-color: var(--status-danger);
+    --bs-btn-hover-bg: var(--status-danger); --bs-btn-hover-border-color: var(--status-danger); --bs-btn-hover-color: var(--paper-50);
+}
+.btn-outline-secondary {
+    --bs-btn-color: var(--ink-700); --bs-btn-border-color: var(--border-medium);
+    --bs-btn-hover-bg: var(--sage-200); --bs-btn-hover-border-color: var(--sage-400); --bs-btn-hover-color: var(--ink-900);
+}
+.btn-link { --bs-btn-color: var(--rose-500); --bs-btn-hover-color: var(--rose-400); }
+
+/* ------------------------------------------------------------------ */
+/* 8. Background / text utility recolors                               */
+/* ------------------------------------------------------------------ */
+.text-primary { color: var(--rose-500) !important; }
+.text-muted, .text-body-secondary { color: var(--ink-500) !important; }
+
+.bg-primary  { background-color: var(--rose-300) !important; }
+.bg-success  { background-color: var(--sage-400) !important; }
+.bg-info     { background-color: var(--sage-300) !important; }
+.bg-warning  { background-color: var(--status-warning) !important; }
+.bg-secondary{ background-color: var(--sage-400) !important; }
+
+/* Badges — pill, mono-ish counts */
+.badge { font-weight: 700; border-radius: var(--radius-pill); padding: 0.35em 0.7em; }
+.badge.bg-secondary { background-color: var(--sage-200) !important; color: var(--ink-700) !important; }
+.badge.bg-dark, .badge.bg-primary { color: var(--paper-50) !important; }
+.badge.bg-dark { background-color: var(--ink-900) !important; }
+
+/* ------------------------------------------------------------------ */
+/* 9. Forms                                                            */
+/* ------------------------------------------------------------------ */
+.form-label { font-weight: 700; color: var(--ink-700); }
+.form-control, .form-select {
+    border-color: var(--border-medium);
+    border-radius: var(--radius-pill);
+    background-color: var(--surface-raised);
+    color: var(--ink-900);
+    padding: 0.55rem 1rem;
+    box-shadow: var(--shadow-xs);
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                box-shadow var(--duration-fast) var(--ease-standard);
+}
+textarea.form-control { border-radius: var(--radius-md); }
+/* Leave room for the dropdown caret so the longest option text never runs
+   under it (Bootstrap paints the caret ~0.75rem from the right edge). */
+.form-select { padding-right: 2.5rem; }
+.form-control::placeholder { color: var(--ink-300); }
+.form-control:focus, .form-select:focus {
+    border-color: var(--focus-ring);
+    box-shadow: var(--focus-shadow);
+    background-color: var(--surface-raised);
+}
+.form-control:disabled, .form-select:disabled {
+    background-color: var(--paper-200);
+    color: var(--ink-500);
+    opacity: 1;
+}
+.form-text { color: var(--ink-500); }
+.form-check-input:checked {
+    background-color: var(--rose-400);
+    border-color: var(--rose-400);
+}
+.form-check-input:focus {
+    border-color: var(--focus-ring);
+    box-shadow: var(--focus-shadow);
+}
+.form-switch .form-check-input:checked { background-color: var(--rose-400); }
+
+/* Tables inside detail/forms */
+.table { --bs-table-bg: transparent; --bs-table-color: var(--ink-900); }
+.table-bordered { --bs-border-color: var(--border-soft); }
+.table > thead.table-light th,
+.table-light { --bs-table-bg: var(--sage-100); color: var(--ink-900); }
+
+/* ------------------------------------------------------------------ */
+/* 10. List groups                                                     */
+/* ------------------------------------------------------------------ */
+.list-group {
+    --bs-list-group-bg: var(--surface-raised);
+    --bs-list-group-border-color: var(--border-soft);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+.list-group-item {
+    background-color: var(--surface-raised);
+    border-color: var(--border-soft);
+    color: var(--ink-900);
+    transition: background-color var(--ease);
+}
+.list-group-item:hover { background-color: var(--sage-100); }
+
+/* ------------------------------------------------------------------ */
+/* 11. Pagination — soft pills                                         */
+/* ------------------------------------------------------------------ */
+.pagination {
+    --bs-pagination-color: var(--ink-700);
+    --bs-pagination-bg: var(--surface-raised);
+    --bs-pagination-border-color: var(--border-medium);
+    --bs-pagination-hover-color: var(--ink-900);
+    --bs-pagination-hover-bg: var(--sage-200);
+    --bs-pagination-hover-border-color: var(--sage-400);
+    --bs-pagination-focus-color: var(--ink-900);
+    --bs-pagination-focus-box-shadow: var(--focus-shadow);
+    --bs-pagination-active-bg: var(--rose-400);
+    --bs-pagination-active-border-color: var(--rose-400);
+    --bs-pagination-active-color: var(--paper-50);
+    gap: 0.375rem;
+}
+.page-link {
+    border-radius: var(--radius-pill) !important;
+    font-weight: 700;
+    min-width: 38px;
+    text-align: center;
+}
+
+/* ------------------------------------------------------------------ */
+/* 12. Alerts                                                          */
+/* ------------------------------------------------------------------ */
+.alert { border-radius: var(--radius-md); border: 1px solid transparent; }
+.alert-success { background: #e9efe6; color: var(--sage-600); border-color: #d5e0cf; }
+.alert-warning { background: #f6edd6; color: #8a6f2e; border-color: #ecdcb0; }
+.alert-danger  { background: #f4e1de; color: #8c3a33; border-color: #ecccc7; }
+.alert-info    { background: #e6ebe7; color: var(--sage-600); border-color: #d3ddd2; }
+
+/* ------------------------------------------------------------------ */
+/* 13. Error pages                                                     */
+/* ------------------------------------------------------------------ */
+.display-1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+}
+
+/* ------------------------------------------------------------------ */
+/* 14. Reduced motion                                                  */
+/* ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+    .rotate-animation-disc { animation: none; }
+    .btn, .card, .greek-chip { transition: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Bootstrap helper bits retained from the original stylesheet         */
+/* ------------------------------------------------------------------ */
+.bd-placeholder-img {
+    font-size: 1.125rem;
+    text-anchor: middle;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+}
+@media (min-width: 768px) {
+    .bd-placeholder-img-lg { font-size: 3.5rem; }
+}

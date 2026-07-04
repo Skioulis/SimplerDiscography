@@ -1,1 +1,4 @@
 /files/
+/.venv/
+/discography.db
+__pycache__/
