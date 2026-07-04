@@ -1,0 +1,34 @@
+{% extends "admin/_layout.html" %}
+{% block title %}Διαχείριση — Εισαγωγή CSV{% endblock %}
+
+{% block admin_content %}
+<div class="card">
+  <div class="card-body p-4">
+    <h2 class="h5">Εισαγωγή νέου CSV</h2>
+    <p class="text-muted mb-2">
+      Αρχείο CSV με κωδικοποίηση UTF-8, χωρισμένο με «;», με τις στήλες:
+    </p>
+    <p><code>{{ columns | join('; ') }}</code></p>
+
+    <div class="alert alert-warning">
+      <strong>Προσοχή:</strong> η εισαγωγή <strong>αντικαθιστά όλα τα υπάρχοντα
+      δεδομένα</strong>. Κατεβάστε πρώτα ένα αντίγραφο από τη
+      <a href="{{ url_for('main.admin_download') }}">Λήψη βάσης</a> αν το χρειάζεστε.
+    </div>
+
+    <form method="post" action="{{ url_for('main.admin_import') }}" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label class="form-label" for="csv">Αρχείο CSV</label>
+        <input class="form-control" type="file" id="csv" name="csv" accept=".csv,text/csv" required>
+      </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="confirm" required>
+        <label class="form-check-label" for="confirm">
+          Κατανοώ ότι όλα τα υπάρχοντα δεδομένα θα αντικατασταθούν.
+        </label>
+      </div>
+      <button class="btn btn-danger" type="submit">Αντικατάσταση βάσης</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

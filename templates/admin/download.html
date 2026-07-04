@@ -1,0 +1,14 @@
+{% extends "admin/_layout.html" %}
+{% block title %}Διαχείριση — Λήψη βάσης{% endblock %}
+
+{% block admin_content %}
+<div class="card">
+  <div class="card-body p-4">
+    <h2 class="h5">Λήψη βάσης δεδομένων</h2>
+    <p class="text-muted">
+      Κατεβάστε ένα αντίγραφο του αρχείου SQLite ({{ db_size }}) στον υπολογιστή σας.
+    </p>
+    <a class="btn btn-primary" href="{{ url_for('main.admin_download_db') }}">Λήψη discography.db</a>
+  </div>
+</div>
+{% endblock %}

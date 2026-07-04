@@ -28,14 +28,18 @@ Prefer SSH? `git clone git@github.com:Skioulis/SimplerDiscography.git`
 ### Prerequisites
 - Docker Engine + the Docker Compose plugin (`docker compose`).
 
-### 1. Set a secret key
+### 1. Set the secrets
 Create a `.env` file next to `docker-compose.yaml`:
 
 ```env
 SECRET_KEY=replace-with-a-long-random-string
+ADMIN_PASSWORD=choose-an-admin-password
 ```
 
-(Generate one with e.g. `python -c "import secrets; print(secrets.token_hex(32))"`.)
+(Generate a secret key with e.g. `python -c "import secrets; print(secrets.token_hex(32))"`.)
+
+`ADMIN_PASSWORD` gates the **/admin** area (CSV import + database download). If it's
+left unset, the admin area is disabled (returns 503).
 
 ### 2. Build and start
 
@@ -73,6 +77,7 @@ Set via environment variables (in `.env` or the `environment:` block of
 | Variable | Default (Docker) | Purpose |
 |---|---|---|
 | `SECRET_KEY` | `please-change-me` | Signs session cookies. **Set this in production.** |
+| `ADMIN_PASSWORD` | *(unset → admin disabled)* | Password for the **/admin** area (CSV import + DB download) |
 | `DISCOGRAPHY_DB` | `/data/db/discography.db` | Path to the SQLite database file |
 | `MEDIA_DIR` | `/data/media` | Directory for audio/image files |
 | `WEB_CONCURRENCY` | `3` | Number of gunicorn workers |
@@ -115,6 +120,21 @@ docker compose exec web sh -c 'cat "$DISCOGRAPHY_DB"' > backup-$(date +%F).db
 ```
 
 To restore, stop the app and copy a `.db` file back into the `db_data` volume.
+
+---
+
+## Admin area
+
+Visit **`/admin`** and log in with `ADMIN_PASSWORD`. It has two pages:
+
+- **Εισαγωγή CSV (Import)** — upload a CSV with the same structure (columns
+  `ΤΙΤΛΟΣ; ΣΥΝΘΕΤΗΣ; ΣΤΙΧΟΥΡΓΟΣ; ΣΤΙΧΟΙ; ΑΡΧΕΙΟ; ΒΙΒΛΙΟΓΡΑΦΙΑ; ΣΗΜΕΙΩΣΕΙΣ`,
+  `;`-delimited, UTF-8). **This replaces all existing data** — a confirmation
+  checkbox is required, and the import is transactional (a malformed file leaves
+  the database untouched).
+- **Λήψη βάσης (Download)** — download a copy of the SQLite database to your PC.
+
+If `ADMIN_PASSWORD` is not set, `/admin` returns 503 (feature disabled).
 
 ---
 

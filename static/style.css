@@ -405,6 +405,25 @@ body {
 }
 
 /* ============================================================
+   Admin
+   ============================================================ */
+
+.wrap--admin { max-width: 820px; }
+.admin-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.admin-title { font-family: var(--font-display); font-size: 1.7rem; margin: .1rem 0 0; }
+.admin-tabs { --bs-nav-pills-link-active-bg: var(--oxblood); }
+.admin-tabs .nav-link { color: var(--muted); }
+.admin-tabs .nav-link:hover { color: var(--ink); }
+.admin-tabs .nav-link.active { color: #fff; }
+.admin-login { max-width: 420px; }
+
+/* ============================================================
    Navbar (shared)
    ============================================================ */
 

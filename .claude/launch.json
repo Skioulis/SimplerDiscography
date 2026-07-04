@@ -11,7 +11,8 @@
       "name": "discography-preview",
       "runtimeExecutable": ".venv/bin/flask",
       "runtimeArgs": ["--app", "app", "run", "--port", "5057"],
-      "port": 5057
+      "port": 5057,
+      "env": { "ADMIN_PASSWORD": "preview", "SECRET_KEY": "preview-key" }
     }
   ]
 }

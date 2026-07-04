@@ -2,20 +2,29 @@
 
 from __future__ import annotations
 
+import datetime
+import hmac
+import io
+import os
 import re
+from functools import wraps
 
 from flask import (
     Blueprint,
     abort,
+    current_app,
     flash,
     jsonify,
     redirect,
     render_template,
     request,
+    send_file,
+    session,
     url_for,
 )
 from sqlalchemy import func, select, text
 
+from dataio import CSVFormatError, read_song_rows, replace_all_songs
 from extensions import db
 from models import Song, fold
 from stats import dashboard_stats
@@ -227,3 +236,98 @@ def search():
         page_size=PAGE_SIZE,
         page_items=_page_window(page, total_pages),
     )
+
+
+# --------------------------------------------------------------------------- #
+# Admin (password-protected via the ADMIN_PASSWORD env var)
+# --------------------------------------------------------------------------- #
+
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_app.config.get("ADMIN_PASSWORD"):
+            abort(503)  # admin not configured
+        if not session.get("is_admin"):
+            return redirect(url_for("main.admin_login", next=request.path))
+        return view(*args, **kwargs)
+    return wrapped
+
+
+@main.route("/admin")
+@admin_required
+def admin_home():
+    return redirect(url_for("main.admin_import"))
+
+
+@main.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if not current_app.config.get("ADMIN_PASSWORD"):
+        abort(503)
+    if session.get("is_admin"):
+        return redirect(url_for("main.admin_import"))
+    if request.method == "POST":
+        supplied = request.form.get("password", "")
+        if hmac.compare_digest(supplied, current_app.config["ADMIN_PASSWORD"]):
+            session["is_admin"] = True
+            nxt = request.args.get("next", "")
+            return redirect(nxt if nxt.startswith("/admin") else url_for("main.admin_import"))
+        flash("Λάθος κωδικός.", "danger")
+    return render_template("admin/login.html")
+
+
+@main.route("/admin/logout")
+def admin_logout():
+    session.pop("is_admin", None)
+    flash("Αποσυνδεθήκατε.")
+    return redirect(url_for("main.dashboard"))
+
+
+@main.route("/admin/import", methods=["GET", "POST"])
+@admin_required
+def admin_import():
+    if request.method == "POST":
+        upload = request.files.get("csv")
+        if not upload or not upload.filename:
+            flash("Δεν επιλέχθηκε αρχείο.", "danger")
+            return redirect(url_for("main.admin_import"))
+        try:
+            stream = io.TextIOWrapper(upload.stream, encoding="utf-8-sig", newline="")
+            rows = read_song_rows(stream)
+        except CSVFormatError as exc:
+            flash(f"Μη έγκυρο αρχείο: {exc}", "danger")
+            return redirect(url_for("main.admin_import"))
+        except UnicodeDecodeError:
+            flash("Το αρχείο δεν είναι έγκυρο UTF-8 CSV.", "danger")
+            return redirect(url_for("main.admin_import"))
+        if not rows:
+            flash("Το αρχείο δεν περιέχει εγγραφές.", "danger")
+            return redirect(url_for("main.admin_import"))
+        try:
+            total = replace_all_songs(rows)
+        except Exception:
+            flash("Η εισαγωγή απέτυχε· η βάση δεν άλλαξε.", "danger")
+            return redirect(url_for("main.admin_import"))
+        flash(f"Η βάση αντικαταστάθηκε με {group_number(total)} τραγούδια.", "success")
+        return redirect(url_for("main.admin_import"))
+    return render_template("admin/import.html", active="import", columns=list(Song.CSV_COLUMNS))
+
+
+@main.route("/admin/download")
+@admin_required
+def admin_download():
+    path = current_app.config["DB_PATH"]
+    size = os.path.getsize(path) if os.path.exists(path) else 0
+    return render_template(
+        "admin/download.html", active="download", db_size=f"{size / (1024 * 1024):.1f} MB"
+    )
+
+
+@main.route("/admin/download/db")
+@admin_required
+def admin_download_db():
+    path = current_app.config["DB_PATH"]
+    if not os.path.exists(path):
+        abort(404)
+    name = f"discography-{datetime.date.today().isoformat()}.db"
+    return send_file(path, as_attachment=True, download_name=name,
+                     mimetype="application/octet-stream")

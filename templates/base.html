@@ -45,10 +45,12 @@
     </div>
   </nav>
 
-  {% with messages = get_flashed_messages() %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     <div class="flash" role="status">
-      {% for m in messages %}<p>{{ m }}</p>{% endfor %}
+      {% for category, m in messages %}
+      <div class="alert alert-{{ {'danger': 'danger', 'warning': 'warning', 'info': 'info'}.get(category, 'success') }} mb-2">{{ m }}</div>
+      {% endfor %}
     </div>
     {% endif %}
   {% endwith %}

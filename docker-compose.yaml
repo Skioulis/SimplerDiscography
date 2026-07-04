@@ -10,6 +10,8 @@ services:
       DISCOGRAPHY_DB: /data/db/discography.db
       MEDIA_DIR: /data/media
       SECRET_KEY: ${SECRET_KEY:-please-change-me}
+      # Password for the /admin area (CSV import + DB download). Set in .env.
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       WEB_CONCURRENCY: 3
     volumes:
       - db_data:/data/db

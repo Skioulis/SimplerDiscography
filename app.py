@@ -38,7 +38,13 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"connect_args": {"timeout": 15}}
     # Where audio/image files live (mounted volume in Docker). Used later.
     app.config["MEDIA_DIR"] = MEDIA_DIR
-    # Used to sign the session cookie for flash messages. Override in production.
+    # Absolute path to the SQLite file (used by the admin download).
+    app.config["DB_PATH"] = DB_PATH
+    # Password gating the /admin area. Unset => admin is disabled (503).
+    app.config["ADMIN_PASSWORD"] = os.environ.get("ADMIN_PASSWORD")
+    # Allow large CSV uploads in the admin importer.
+    app.config["MAX_CONTENT_LENGTH"] = 128 * 1024 * 1024
+    # Used to sign the session cookie (flash messages, admin login). Override in production.
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-discography-key")
     if config:
         app.config.update(config)

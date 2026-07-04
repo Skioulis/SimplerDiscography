@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<main class="wrap wrap--admin">
+  <div class="admin-head">
+    <div>
+      <p class="eyebrow">Διαχείριση</p>
+      <h1 class="admin-title">Διαχείριση αρχείου</h1>
+    </div>
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.admin_logout') }}">Αποσύνδεση</a>
+  </div>
+
+  <ul class="nav nav-pills admin-tabs mb-4">
+    <li class="nav-item">
+      <a class="nav-link {{ 'active' if active == 'import' }}" href="{{ url_for('main.admin_import') }}">Εισαγωγή CSV</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {{ 'active' if active == 'download' }}" href="{{ url_for('main.admin_download') }}">Λήψη βάσης</a>
+    </li>
+  </ul>
+
+  {% block admin_content %}{% endblock %}
+</main>
+{% endblock %}
