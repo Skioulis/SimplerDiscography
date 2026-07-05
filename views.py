@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import datetime
 import hmac
-import io
 import os
 import re
+import tempfile
 from functools import wraps
 
 from flask import (
@@ -24,7 +24,13 @@ from flask import (
 )
 from sqlalchemy import func, select, text
 
-from dataio import CSVFormatError, read_song_rows, replace_all_songs
+from dataio import (
+    CSVFormatError,
+    read_song_rows,
+    replace_all_songs,
+    replace_songs_from_db,
+    validate_sqlite_db,
+)
 from extensions import db
 from models import Song, fold
 from stats import dashboard_stats
@@ -282,32 +288,64 @@ def admin_logout():
     return redirect(url_for("main.dashboard"))
 
 
+_SQLITE_MAGIC = b"SQLite format 3\x00"
+
+
+def _do_import(upload) -> tuple[bool, str]:
+    """Import an uploaded CSV or .db file (auto-detected). Returns (ok, message)."""
+    if not upload or not upload.filename:
+        return False, "Δεν επιλέχθηκε αρχείο."
+    fd, tmp = tempfile.mkstemp(prefix="disco-upload-")
+    os.close(fd)
+    try:
+        upload.save(tmp)
+        with open(tmp, "rb") as fh:
+            is_sqlite = fh.read(16) == _SQLITE_MAGIC
+        return _import_db(tmp) if is_sqlite else _import_csv_file(tmp)
+    finally:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+
+
+def _import_csv_file(path: str) -> tuple[bool, str]:
+    try:
+        with open(path, encoding="utf-8-sig", newline="") as fh:
+            rows = read_song_rows(fh)
+    except CSVFormatError as exc:
+        return False, f"Μη έγκυρο αρχείο: {exc}"
+    except UnicodeDecodeError:
+        return False, "Το αρχείο δεν είναι έγκυρο CSV (UTF-8)."
+    if not rows:
+        return False, "Το αρχείο δεν περιέχει εγγραφές."
+    try:
+        total = replace_all_songs(rows)
+    except Exception:
+        return False, "Η εισαγωγή απέτυχε· η βάση δεν άλλαξε."
+    return True, f"Η βάση αντικαταστάθηκε με {group_number(total)} τραγούδια (CSV)."
+
+
+def _import_db(path: str) -> tuple[bool, str]:
+    ok, msg = validate_sqlite_db(path)
+    if not ok:
+        return False, msg
+    db.session.remove()  # release the ORM connection before the raw file write
+    try:
+        total = replace_songs_from_db(path, current_app.config["DB_PATH"])
+    except Exception:
+        return False, "Η αποκατάσταση απέτυχε· η βάση δεν άλλαξε."
+    return True, f"Η βάση αποκαταστάθηκε από αρχείο .db με {group_number(total)} τραγούδια."
+
+
 @main.route("/admin/import", methods=["GET", "POST"])
 @admin_required
 def admin_import():
     if request.method == "POST":
-        upload = request.files.get("csv")
-        if not upload or not upload.filename:
-            flash("Δεν επιλέχθηκε αρχείο.", "danger")
-            return redirect(url_for("main.admin_import"))
-        try:
-            stream = io.TextIOWrapper(upload.stream, encoding="utf-8-sig", newline="")
-            rows = read_song_rows(stream)
-        except CSVFormatError as exc:
-            flash(f"Μη έγκυρο αρχείο: {exc}", "danger")
-            return redirect(url_for("main.admin_import"))
-        except UnicodeDecodeError:
-            flash("Το αρχείο δεν είναι έγκυρο UTF-8 CSV.", "danger")
-            return redirect(url_for("main.admin_import"))
-        if not rows:
-            flash("Το αρχείο δεν περιέχει εγγραφές.", "danger")
-            return redirect(url_for("main.admin_import"))
-        try:
-            total = replace_all_songs(rows)
-        except Exception:
-            flash("Η εισαγωγή απέτυχε· η βάση δεν άλλαξε.", "danger")
-            return redirect(url_for("main.admin_import"))
-        flash(f"Η βάση αντικαταστάθηκε με {group_number(total)} τραγούδια.", "success")
+        ok, message = _do_import(request.files.get("csv"))
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"ok": ok, "message": message}), (200 if ok else 400)
+        flash(message, "success" if ok else "danger")
         return redirect(url_for("main.admin_import"))
     return render_template("admin/import.html", active="import", columns=list(Song.CSV_COLUMNS))
 

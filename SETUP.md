@@ -127,11 +127,12 @@ To restore, stop the app and copy a `.db` file back into the `db_data` volume.
 
 Visit **`/admin`** and log in with `ADMIN_PASSWORD`. It has two pages:
 
-- **Εισαγωγή CSV (Import)** — upload a CSV with the same structure (columns
+- **Εισαγωγή (Import)** — upload either a **CSV** (same structure: columns
   `ΤΙΤΛΟΣ; ΣΥΝΘΕΤΗΣ; ΣΤΙΧΟΥΡΓΟΣ; ΣΤΙΧΟΙ; ΑΡΧΕΙΟ; ΒΙΒΛΙΟΓΡΑΦΙΑ; ΣΗΜΕΙΩΣΕΙΣ`,
-  `;`-delimited, UTF-8). **This replaces all existing data** — a confirmation
-  checkbox is required, and the import is transactional (a malformed file leaves
-  the database untouched).
+  `;`-delimited, UTF-8) or a **`.db` file** previously downloaded from *Λήψη βάσης*.
+  The type is auto-detected. **This replaces all existing data** — you confirm in a
+  dialog, watch an upload progress bar, and the import is transactional (a malformed
+  or incompatible file leaves the database untouched).
 - **Λήψη βάσης (Download)** — download a copy of the SQLite database to your PC.
 
 If `ADMIN_PASSWORD` is not set, `/admin` returns 503 (feature disabled).

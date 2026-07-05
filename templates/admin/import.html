@@ -4,11 +4,14 @@
 {% block admin_content %}
 <div class="card">
   <div class="card-body p-4">
-    <h2 class="h5">Εισαγωγή νέου CSV</h2>
-    <p class="text-muted mb-2">
-      Αρχείο CSV με κωδικοποίηση UTF-8, χωρισμένο με «;», με τις στήλες:
-    </p>
-    <p><code>{{ columns | join('; ') }}</code></p>
+    <h2 class="h5">Εισαγωγή δεδομένων</h2>
+    <p class="text-muted mb-2">Ανεβάστε ένα από τα δύο:</p>
+    <ul class="text-muted">
+      <li>αρχείο <strong>CSV</strong> (UTF-8, χωρισμένο με «;») με στήλες:
+        <code>{{ columns | join('; ') }}</code></li>
+      <li>αρχείο βάσης <strong>.db</strong> (π.χ. κατεβασμένο από τη
+        <a href="{{ url_for('main.admin_download') }}">Λήψη βάσης</a>)</li>
+    </ul>
 
     <div class="alert alert-warning">
       <strong>Προσοχή:</strong> η εισαγωγή <strong>αντικαθιστά όλα τα υπάρχοντα
@@ -16,19 +19,152 @@
       <a href="{{ url_for('main.admin_download') }}">Λήψη βάσης</a> αν το χρειάζεστε.
     </div>
 
-    <form method="post" action="{{ url_for('main.admin_import') }}" enctype="multipart/form-data">
+    <form id="importForm" method="post" action="{{ url_for('main.admin_import') }}"
+          enctype="multipart/form-data">
       <div class="mb-3">
-        <label class="form-label" for="csv">Αρχείο CSV</label>
-        <input class="form-control" type="file" id="csv" name="csv" accept=".csv,text/csv" required>
-      </div>
-      <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" id="confirm" required>
-        <label class="form-check-label" for="confirm">
-          Κατανοώ ότι όλα τα υπάρχοντα δεδομένα θα αντικατασταθούν.
-        </label>
+        <label class="form-label" for="csv">Αρχείο CSV ή .db</label>
+        <input class="form-control" type="file" id="csv" name="csv"
+               accept=".csv,text/csv,.db,.sqlite,application/octet-stream" required>
       </div>
       <button class="btn btn-danger" type="submit">Αντικατάσταση βάσης</button>
     </form>
   </div>
 </div>
+
+<!-- Confirm → progress → result -->
+<div class="modal fade" id="importModal" tabindex="-1" data-bs-backdrop="static"
+     data-bs-keyboard="false" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="importModalTitle">Επιβεβαίωση</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                aria-label="Κλείσιμο" id="importClose"></button>
+      </div>
+      <div class="modal-body">
+        <div data-state="confirm">
+          <p class="mb-1">Θα αντικατασταθούν <strong>όλα</strong> τα δεδομένα με το
+            περιεχόμενο του αρχείου <span id="importFileName" class="fw-semibold"></span>.</p>
+          <p class="text-muted mb-0">Η ενέργεια δεν μπορεί να αναιρεθεί.</p>
+        </div>
+        <div data-state="progress" hidden>
+          <p id="importProgressLabel" class="mb-2">Μεταφόρτωση…</p>
+          <div class="progress" role="progressbar" aria-label="Πρόοδος"
+               aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" id="importProgressBar" style="width: 0%">0%</div>
+          </div>
+        </div>
+        <div data-state="result" hidden>
+          <div class="alert mb-0" id="importResultAlert"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"
+                id="importCancel">Ακύρωση</button>
+        <button type="button" class="btn btn-danger" id="importConfirm">Αντικατάσταση</button>
+        <button type="button" class="btn btn-primary" id="importDone" hidden>Εντάξει</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var form = document.getElementById('importForm');
+    var fileInput = document.getElementById('csv');
+    var modalEl = document.getElementById('importModal');
+    var modal = new bootstrap.Modal(modalEl);
+
+    var title = document.getElementById('importModalTitle');
+    var bar = document.getElementById('importProgressBar');
+    var progressLabel = document.getElementById('importProgressLabel');
+    var confirmBtn = document.getElementById('importConfirm');
+    var doneBtn = document.getElementById('importDone');
+    var cancelBtn = document.getElementById('importCancel');
+    var closeBtn = document.getElementById('importClose');
+    var resultAlert = document.getElementById('importResultAlert');
+    var fileName = document.getElementById('importFileName');
+    var states = modalEl.querySelectorAll('[data-state]');
+
+    function show(state) {
+      states.forEach(function (el) { el.hidden = el.dataset.state !== state; });
+    }
+    function setBar(pct) {
+      bar.style.width = pct + '%';
+      bar.textContent = pct + '%';
+      bar.setAttribute('aria-valuenow', pct);
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!form.reportValidity()) return;      // native: file is required
+      fileName.textContent = fileInput.files[0] ? '«' + fileInput.files[0].name + '»' : '';
+      title.textContent = 'Επιβεβαίωση';
+      show('confirm');
+      confirmBtn.hidden = false;
+      doneBtn.hidden = true;
+      cancelBtn.hidden = false;
+      cancelBtn.disabled = false;
+      closeBtn.disabled = false;
+      modal.show();
+    });
+
+    confirmBtn.addEventListener('click', function () {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', form.action);
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+      title.textContent = 'Εισαγωγή';
+      show('progress');
+      confirmBtn.hidden = true;
+      cancelBtn.disabled = true;
+      closeBtn.disabled = true;
+      setBar(0);
+      progressLabel.textContent = 'Μεταφόρτωση…';
+      bar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+
+      xhr.upload.addEventListener('progress', function (ev) {
+        if (!ev.lengthComputable) return;
+        var pct = Math.round(ev.loaded / ev.total * 100);
+        setBar(pct);
+        if (pct >= 100) {
+          progressLabel.textContent = 'Επεξεργασία…';
+          bar.classList.add('progress-bar-striped', 'progress-bar-animated');
+        }
+      });
+      xhr.addEventListener('load', function () {
+        var ok = xhr.status >= 200 && xhr.status < 300, msg = '';
+        try { msg = JSON.parse(xhr.responseText).message; } catch (e) {}
+        finish(ok, msg || (ok ? 'Ολοκληρώθηκε.' : 'Η εισαγωγή απέτυχε.'));
+      });
+      xhr.addEventListener('error', function () { finish(false, 'Σφάλμα δικτύου.'); });
+      xhr.send(new FormData(form));
+    });
+
+    function finish(ok, msg) {
+      bar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+      title.textContent = ok ? 'Επιτυχία' : 'Σφάλμα';
+      resultAlert.className = 'alert mb-0 alert-' + (ok ? 'success' : 'danger');
+      resultAlert.textContent = msg;
+      show('result');
+      confirmBtn.hidden = true;
+      cancelBtn.hidden = true;
+      closeBtn.disabled = false;
+      doneBtn.hidden = false;
+      doneBtn.onclick = function () { if (ok) window.location.reload(); else modal.hide(); };
+    }
+
+    modalEl.addEventListener('hidden.bs.modal', function () {
+      show('confirm');
+      confirmBtn.hidden = false;
+      doneBtn.hidden = true;
+      cancelBtn.hidden = false;
+      cancelBtn.disabled = false;
+      closeBtn.disabled = false;
+      setBar(0);
+    });
+  })();
+</script>
 {% endblock %}

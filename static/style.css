@@ -422,6 +422,7 @@ body {
 .admin-tabs .nav-link:hover { color: var(--ink); }
 .admin-tabs .nav-link.active { color: #fff; }
 .admin-login { max-width: 420px; }
+.progress { --bs-progress-bar-bg: var(--petrol); height: 1.25rem; }
 
 /* ============================================================
    Navbar (shared)

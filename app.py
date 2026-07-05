@@ -42,8 +42,8 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["DB_PATH"] = DB_PATH
     # Password gating the /admin area. Unset => admin is disabled (503).
     app.config["ADMIN_PASSWORD"] = os.environ.get("ADMIN_PASSWORD")
-    # Allow large CSV uploads in the admin importer.
-    app.config["MAX_CONTENT_LENGTH"] = 128 * 1024 * 1024
+    # Allow large uploads in the admin importer (CSV or a full .db restore).
+    app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024 * 1024
     # Used to sign the session cookie (flash messages, admin login). Override in production.
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-discography-key")
     if config:
