@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Εύρεση & Αντικατάσταση — Δισκογραφικό Αρχείο{% endblock %}
+
+{% block content %}
+<main class="wrap wrap--search">
+  <header class="searchhead">
+    <p class="eyebrow">Εργαλεία</p>
+    <h1 class="searchhead__title">Εύρεση &amp; Αντικατάσταση</h1>
+  </header>
+
+  <div class="fr card">
+    <div class="card-body">
+      <div class="fr__row">
+        <div class="fr__field">
+          <input id="frFind" class="form-control form-control-sm" placeholder="Εύρεση" autofocus autocomplete="off">
+          <div class="fr__toggles">
+            <button type="button" id="frCc" class="fr__toggle" title="Διάκριση πεζών/κεφαλαίων">Cc</button>
+            <button type="button" id="frW"  class="fr__toggle" title="Ολόκληρη λέξη">W</button>
+            <button type="button" id="frRe" class="fr__toggle" title="Κανονική έκφραση (regex)">.*</button>
+          </div>
+        </div>
+        <span id="frCount" class="fr__count"></span>
+        <div class="fr__nav">
+          <button type="button" id="frPrev" class="fr__navbtn" title="Προηγούμενο" disabled>↑</button>
+          <button type="button" id="frNext" class="fr__navbtn" title="Επόμενο" disabled>↓</button>
+        </div>
+      </div>
+
+      <div class="fr__row">
+        <div class="fr__field">
+          <input id="frRepl" class="form-control form-control-sm" placeholder="Αντικατάσταση με" autocomplete="off">
+        </div>
+        <div class="fr__actions">
+          <button type="button" id="frReplace" class="btn btn-sm btn-outline-danger" disabled>Αντικατάσταση</button>
+          <button type="button" id="frReplaceAll" class="btn btn-sm btn-danger" disabled>Όλα</button>
+          <button type="button" id="frExclude" class="btn btn-sm btn-outline-secondary" disabled>Εξαίρεση</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="frCurrent" class="fr-current"></div>
+</main>
+
+<div class="modal fade" id="frAllModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5">Αντικατάσταση όλων</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Κλείσιμο"></button>
+      </div>
+      <div class="modal-body">
+        Θα αντικατασταθεί «<strong id="frAllFind"></strong>» με «<strong id="frAllRepl"></strong>»
+        σε <strong id="frAllCount"></strong> εγγραφές. Η ενέργεια δεν μπορεί να αναιρεθεί.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Ακύρωση</button>
+        <button type="button" class="btn btn-danger" id="frAllConfirm">Αντικατάσταση όλων</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const $ = (id) => document.getElementById(id);
+    const find = $('frFind'), repl = $('frRepl'), countEl = $('frCount'), cur = $('frCurrent');
+    const tCc = $('frCc'), tW = $('frW'), tRe = $('frRe');
+    const btnPrev = $('frPrev'), btnNext = $('frNext');
+    const btnRep = $('frReplace'), btnAll = $('frReplaceAll'), btnExc = $('frExclude');
+    const allModal = new bootstrap.Modal($('frAllModal'));
+
+    let matches = [], total = 0, capped = false, index = 0, excluded = new Set(), timer = null;
+
+    const opts = () => ({
+      cc: tCc.classList.contains('is-on'),
+      w: tW.classList.contains('is-on'),
+      re: tRe.classList.contains('is-on'),
+    });
+    const esc = (s) => (s || '').replace(/[&<>"]/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    function render(msg) {
+      const n = matches.length;
+      if (msg !== undefined) countEl.textContent = msg;
+      else if (!find.value) countEl.textContent = '';
+      else if (n === 0) countEl.textContent = 'δεν βρέθηκε';
+      else countEl.textContent = (index + 1) + ' / ' + n + (capped ? ' (από ' + total + ')' : '');
+
+      const has = n > 0;
+      [btnPrev, btnNext, btnRep, btnExc].forEach((b) => (b.disabled = !has));
+      btnAll.disabled = total === 0;
+
+      if (!has) { cur.innerHTML = ''; return; }
+      const m = matches[index];
+      let html = '<div class="card fr-current__card"><div class="card-body">'
+        + '<div class="fr-current__head">'
+        + '<a class="fw-semibold" href="/songs/' + m.id + '">' + esc(m.title) + '</a>'
+        + '<span class="fr-current__id">#' + m.id + '</span></div>';
+      m.fields.forEach((f) => {
+        html += '<div class="replace-field"><span class="replace-field__label">' + esc(f.label)
+          + '</span><span class="replace-field__snippet">' + f.html + '</span></div>';
+      });
+      cur.innerHTML = html + '</div></div>';
+    }
+
+    function runFind() {
+      const q = find.value;
+      if (!q) { matches = []; total = 0; capped = false; excluded.clear(); index = 0; render(); return; }
+      const o = opts();
+      const p = new URLSearchParams({ q, cc: o.cc ? 1 : 0, w: o.w ? 1 : 0, re: o.re ? 1 : 0 });
+      render('αναζήτηση…');
+      fetch('/api/replace/find?' + p)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.error) { matches = []; total = 0; render('σφάλμα: ' + d.error); return; }
+          matches = d.matches; total = d.total; capped = d.capped;
+          excluded.clear(); index = 0; render();
+        })
+        .catch(() => render('σφάλμα δικτύου'));
+    }
+
+    function move(d) { if (matches.length) { index = (index + d + matches.length) % matches.length; render(); } }
+    function drop() { matches.splice(index, 1); if (index >= matches.length) index = Math.max(0, matches.length - 1); }
+
+    function replaceCurrent() {
+      if (!matches.length) return;
+      const m = matches[index], o = opts();
+      btnRep.disabled = true;
+      fetch('/api/replace/one', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: m.id, q: find.value, repl: repl.value, cc: o.cc, w: o.w, re: o.re }),
+      }).then((r) => r.json()).then(() => { drop(); total = Math.max(0, total - 1); render(); })
+        .catch(() => render('σφάλμα δικτύου'));
+    }
+
+    function excludeCurrent() {
+      if (!matches.length) return;
+      excluded.add(matches[index].id); drop(); render();
+    }
+
+    function replaceAll() {
+      const o = opts();
+      render('αντικατάσταση…');
+      fetch('/api/replace/all', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: find.value, repl: repl.value, cc: o.cc, w: o.w, re: o.re, exclude: [...excluded] }),
+      }).then((r) => r.json()).then((d) => {
+        countEl.textContent = 'αντικαταστάθηκαν ' + (d.count || 0) + ' εγγραφές';
+        runFind();
+      }).catch(() => render('σφάλμα δικτύου'));
+    }
+
+    tRe.addEventListener('click', () => { tRe.classList.toggle('is-on'); tW.disabled = tRe.classList.contains('is-on'); runFind(); });
+    [tCc, tW].forEach((t) => t.addEventListener('click', () => { if (!t.disabled) { t.classList.toggle('is-on'); runFind(); } }));
+    find.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(runFind, 400); });
+    find.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); matches.length ? move(e.shiftKey ? -1 : 1) : runFind(); } });
+    repl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); replaceCurrent(); } });
+    btnPrev.onclick = () => move(-1);
+    btnNext.onclick = () => move(1);
+    btnRep.onclick = replaceCurrent;
+    btnExc.onclick = excludeCurrent;
+    btnAll.onclick = () => {
+      $('frAllFind').textContent = find.value;
+      $('frAllRepl').textContent = repl.value;
+      $('frAllCount').textContent = Math.max(0, total - excluded.size);
+      allModal.show();
+    };
+    $('frAllConfirm').onclick = () => { allModal.hide(); replaceAll(); };
+
+    render();
+  })();
+</script>
+{% endblock %}

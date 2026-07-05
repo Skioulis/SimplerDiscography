@@ -424,6 +424,72 @@ body {
 .admin-login { max-width: 420px; }
 .progress { --bs-progress-bar-bg: var(--petrol); height: 1.25rem; }
 
+/* find & replace — IDE-style bar */
+.fr__row { display: flex; align-items: center; gap: .6rem; }
+.fr__row + .fr__row { margin-top: .55rem; }
+.fr__field { position: relative; flex: 1 1 auto; min-width: 0; }
+#frFind { padding-right: 6.2rem; }
+.fr__toggles {
+  position: absolute;
+  right: .35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: .2rem;
+}
+.fr__toggle {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  line-height: 1;
+  padding: .2rem .35rem;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.fr__toggle:hover { background: var(--surface-2); color: var(--ink); }
+.fr__toggle.is-on { background: var(--oxblood); color: #fff; }
+.fr__toggle:disabled { opacity: .35; cursor: not-allowed; }
+.fr__count {
+  min-width: 6.5rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  color: var(--muted);
+}
+.fr__nav { display: flex; gap: .25rem; }
+.fr__navbtn {
+  width: 30px; height: 30px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 7px;
+  color: var(--ink);
+  line-height: 1;
+  cursor: pointer;
+}
+.fr__navbtn:hover:not(:disabled) { border-color: var(--brass); color: var(--oxblood); }
+.fr__navbtn:disabled { opacity: .4; cursor: not-allowed; }
+.fr__actions { display: flex; gap: .4rem; flex-shrink: 0; }
+
+.fr-current { margin-top: 1.25rem; }
+.fr-current__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.fr-current__id { font-family: var(--font-mono); font-size: .8rem; color: var(--muted); }
+
+.replace-field { font-size: .85rem; margin-top: .5rem; }
+.replace-field__label {
+  display: inline-block;
+  min-width: 6.5rem;
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--brass);
+  vertical-align: top;
+}
+.replace-field__snippet { color: var(--ink); white-space: pre-wrap; }
+.replace-field__snippet mark { background: #ffe9a8; padding: 0 .1em; border-radius: 2px; }
+
 /* ============================================================
    Navbar (shared)
    ============================================================ */

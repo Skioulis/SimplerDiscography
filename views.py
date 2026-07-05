@@ -22,6 +22,7 @@ from flask import (
     session,
     url_for,
 )
+from markupsafe import escape
 from sqlalchemy import func, select, text
 
 from dataio import (
@@ -242,6 +243,142 @@ def search():
         page_size=PAGE_SIZE,
         page_items=_page_window(page, total_pages),
     )
+
+
+# --------------------------------------------------------------------------- #
+# Find & replace (main area) — IDE-style: options, per-match review, replace all
+# --------------------------------------------------------------------------- #
+
+FIND_CAP = 500  # max matches returned to the client for navigation/preview
+
+
+def _build_pattern(find, case_sensitive, whole_word, regex):
+    """Compile a search pattern from the options. Returns (pattern, error)."""
+    if not find:
+        return None, None
+    flags = 0 if case_sensitive else re.IGNORECASE
+    try:
+        if regex:
+            return re.compile(find, flags), None
+        body = re.escape(find)
+        if whole_word:
+            body = r"\b" + body + r"\b"
+        return re.compile(body, flags), None
+    except re.error as exc:
+        return None, str(exc)
+
+
+def _highlight(value, pattern, ctx=50):
+    """Escaped snippet around the first match, with all matches wrapped in <mark>."""
+    m = pattern.search(value)
+    if not m:
+        return None
+    start, end = max(0, m.start() - ctx), min(len(value), m.end() + ctx)
+    seg = value[start:end]
+    parts, last = [], 0
+    for mm in pattern.finditer(seg):
+        if mm.start() == mm.end():
+            continue  # skip zero-width matches
+        parts.append(str(escape(seg[last:mm.start()])))
+        parts.append("<mark>" + str(escape(mm.group(0))) + "</mark>")
+        last = mm.end()
+    parts.append(str(escape(seg[last:])))
+    return ("…" if start else "") + "".join(parts) + ("…" if end < len(value) else "")
+
+
+def _song_rows():
+    cols = [Song.id] + [getattr(Song, f) for f in Song.SEARCHABLE_FIELDS]
+    return db.session.execute(select(*cols).order_by(Song.id)).mappings()
+
+
+def _replacer(repl, regex):
+    """A str->str replacement argument for re.sub; literal (no backrefs) unless regex."""
+    return repl if regex else (lambda m: repl)
+
+
+def _apply_sub(song, pattern, repl_arg):
+    changed = False
+    for f in Song.SEARCHABLE_FIELDS:
+        val = getattr(song, f) or ""
+        new = pattern.sub(repl_arg, val)
+        if new != val:
+            setattr(song, f, new)
+            changed = True
+    return changed
+
+
+@main.route("/replace")
+def replace():
+    return render_template("replace.html")
+
+
+@main.route("/api/replace/find")
+def api_replace_find():
+    pattern, err = _build_pattern(
+        request.args.get("q", ""),
+        request.args.get("cc") == "1",
+        request.args.get("w") == "1",
+        request.args.get("re") == "1",
+    )
+    if err:
+        return jsonify({"error": err}), 400
+    if pattern is None:
+        return jsonify({"total": 0, "capped": False, "matches": []})
+
+    matches, total = [], 0
+    for row in _song_rows():
+        fields = [
+            {"label": Song.LABELS[f], "html": _highlight(row[f] or "", pattern)}
+            for f in Song.SEARCHABLE_FIELDS
+            if pattern.search(row[f] or "")
+        ]
+        if not fields:
+            continue
+        total += 1
+        if len(matches) < FIND_CAP:
+            matches.append({"id": row["id"], "title": row["title"] or "—", "fields": fields})
+    return jsonify({"total": total, "capped": total > len(matches), "matches": matches})
+
+
+@main.route("/api/replace/one", methods=["POST"])
+def api_replace_one():
+    data = request.get_json(silent=True) or {}
+    pattern, err = _build_pattern(
+        data.get("q", ""), bool(data.get("cc")), bool(data.get("w")), bool(data.get("re")))
+    if err or pattern is None:
+        return jsonify({"ok": False, "error": err or "empty"}), 400
+    song = db.session.get(Song, data.get("id"))
+    if song is None:
+        return jsonify({"ok": False, "error": "not found"}), 404
+    changed = _apply_sub(song, pattern, _replacer(data.get("repl", ""), data.get("re")))
+    if changed:
+        db.session.commit()
+    return jsonify({"ok": True, "changed": changed})
+
+
+@main.route("/api/replace/all", methods=["POST"])
+def api_replace_all():
+    data = request.get_json(silent=True) or {}
+    pattern, err = _build_pattern(
+        data.get("q", ""), bool(data.get("cc")), bool(data.get("w")), bool(data.get("re")))
+    if err or pattern is None:
+        return jsonify({"ok": False, "error": err or "empty"}), 400
+    exclude = set(data.get("exclude", []))
+    ids = [
+        row["id"] for row in _song_rows()
+        if row["id"] not in exclude
+        and any(pattern.search(row[f] or "") for f in Song.SEARCHABLE_FIELDS)
+    ]
+    repl_arg = _replacer(data.get("repl", ""), data.get("re"))
+    count = 0
+    for start in range(0, len(ids), 500):
+        chunk = ids[start:start + 500]
+        for song in db.session.scalars(select(Song).where(Song.id.in_(chunk))):
+            if _apply_sub(song, pattern, repl_arg):
+                count += 1
+    if count:
+        db.session.commit()
+    return jsonify({"ok": True, "count": count})
 
 
 # --------------------------------------------------------------------------- #
