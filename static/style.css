@@ -471,10 +471,29 @@ body {
 .fr__navbtn:hover:not(:disabled) { border-color: var(--brass); color: var(--oxblood); }
 .fr__navbtn:disabled { opacity: .4; cursor: not-allowed; }
 .fr__actions { display: flex; gap: .4rem; flex-shrink: 0; }
+.fr__scope, .search-modal__scope { max-width: 9.5rem; flex: 0 0 auto; }
 
 .fr-current { margin-top: 1.25rem; }
 .fr-current__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .fr-current__id { font-family: var(--font-mono); font-size: .8rem; color: var(--muted); }
+.fr-current__head { margin-bottom: 1rem; padding-bottom: .75rem; border-bottom: 1px solid var(--line); }
+
+/* read-only field boxes in the replace preview (styled like the record form) */
+.replace-view__value {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: .55rem .7rem;
+  margin-top: .3rem;
+  font-size: .92rem;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-height: 2.5rem;
+  max-height: 13rem;
+  overflow-y: auto;
+}
+.replace-view__value--serif { font-family: var(--font-display); line-height: 1.55; }
+.replace-view__value mark { background: #ffe9a8; padding: 0 .1em; border-radius: 2px; }
 
 .replace-field { font-size: .85rem; margin-top: .5rem; }
 .replace-field__label {
@@ -581,6 +600,8 @@ body {
 /* ~80% of the viewport on wide monitors, but never narrower than 1120px */
 .wrap--record { max-width: max(1120px, 80vw); }
 .wrap--search { max-width: 820px; }
+/* find & replace: search bar + full-record preview scale on wide monitors */
+.wrap--replace { max-width: max(1120px, 80vw); }
 
 .record {
   background: var(--surface);

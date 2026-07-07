@@ -31,7 +31,7 @@
           <li class="nav-item"><a class="nav-link" href="{{ url_for('main.dashboard') }}">Πίνακας</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('main.record', song_id=1) }}">Περιήγηση</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('main.song_new') }}">+ Προσθήκη</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.replace') }}">Αντικατάσταση</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.replace') }}">Εύρεση & Αντικατάσταση</a></li>
         </ul>
 
         <a class="app-nav__searchtrigger" href="{{ url_for('main.search') }}"
@@ -71,6 +71,11 @@
             <input type="search" id="modalSearchInput" class="form-control"
                    placeholder="Αναζήτηση στο αρχείο…" autocomplete="off" aria-label="Αναζήτηση">
           </div>
+          <select id="modalSearchField" class="form-select form-select-sm search-modal__scope"
+                  aria-label="Πεδίο αναζήτησης">
+            <option value="">Όλα τα πεδία</option>
+            {% for val, label in field_options %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+          </select>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Κλείσιμο"></button>
         </div>
         <div class="modal-body">
@@ -94,6 +99,7 @@
       var hint = document.getElementById('modalSearchHint');
       var results = document.getElementById('modalSearchResults');
       var allLink = document.getElementById('modalSearchAll');
+      var fieldSel = document.getElementById('modalSearchField');
       var MIN = 3, timer = null, controller = null;
       var items = [], active = -1;   // result anchors + highlighted index
 
@@ -136,7 +142,8 @@
           results.appendChild(li);
         });
         items = Array.prototype.slice.call(results.querySelectorAll('.result__link'));
-        allLink.href = '/search?q=' + encodeURIComponent(q);
+        allLink.href = '/search?q=' + encodeURIComponent(q)
+          + (fieldSel.value ? '&field=' + encodeURIComponent(fieldSel.value) : '');
         allLink.textContent = 'Όλα τα ' + data.total.toLocaleString('el') + ' αποτελέσματα';
         allLink.hidden = data.total <= data.results.length;
       }
@@ -153,12 +160,16 @@
         timer = setTimeout(function () {
           if (controller) controller.abort();
           controller = new AbortController();
-          fetch('/api/search?q=' + encodeURIComponent(q), { signal: controller.signal })
+          var url = '/api/search?q=' + encodeURIComponent(q)
+            + '&field=' + encodeURIComponent(fieldSel.value);
+          fetch(url, { signal: controller.signal })
             .then(function (r) { return r.json(); })
             .then(function (d) { render(d, q); })
             .catch(function (e) { if (e.name !== 'AbortError') setHint('Σφάλμα αναζήτησης.'); });
         }, 200);
       });
+
+      fieldSel.addEventListener('change', function () { input.dispatchEvent(new Event('input')); });
 
       input.addEventListener('keydown', function (e) {
         if (e.key === 'ArrowDown') {

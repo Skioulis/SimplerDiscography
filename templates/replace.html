@@ -2,11 +2,11 @@
 {% block title %}Εύρεση & Αντικατάσταση — Δισκογραφικό Αρχείο{% endblock %}
 
 {% block content %}
-<main class="wrap wrap--search">
-  <header class="searchhead">
-    <p class="eyebrow">Εργαλεία</p>
-    <h1 class="searchhead__title">Εύρεση &amp; Αντικατάσταση</h1>
-  </header>
+<main class="wrap wrap--replace">
+{#  <header class="searchhead">#}
+{#    <p class="eyebrow">Εργαλεία</p>#}
+{#    <h1 class="searchhead__title">Εύρεση &amp; Αντικατάσταση</h1>#}
+{#  </header>#}
 
   <div class="fr card">
     <div class="card-body">
@@ -19,6 +19,10 @@
             <button type="button" id="frRe" class="fr__toggle" title="Κανονική έκφραση (regex)">.*</button>
           </div>
         </div>
+        <select id="frField" class="form-select form-select-sm fr__scope" aria-label="Πεδίο">
+          <option value="">Όλα τα πεδία</option>
+          {% for val, label in field_options %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+        </select>
         <span id="frCount" class="fr__count"></span>
         <div class="fr__nav">
           <button type="button" id="frPrev" class="fr__navbtn" title="Προηγούμενο" disabled>↑</button>
@@ -67,96 +71,104 @@
   (function () {
     const $ = (id) => document.getElementById(id);
     const find = $('frFind'), repl = $('frRepl'), countEl = $('frCount'), cur = $('frCurrent');
-    const tCc = $('frCc'), tW = $('frW'), tRe = $('frRe');
+    const tCc = $('frCc'), tW = $('frW'), tRe = $('frRe'), fieldSel = $('frField');
     const btnPrev = $('frPrev'), btnNext = $('frNext');
     const btnRep = $('frReplace'), btnAll = $('frReplaceAll'), btnExc = $('frExclude');
     const allModal = new bootstrap.Modal($('frAllModal'));
 
-    let matches = [], total = 0, capped = false, index = 0, excluded = new Set(), timer = null;
+    let ids = [], index = 0, excluded = new Set(), cache = new Map(), timer = null, seq = 0;
 
     const opts = () => ({
       cc: tCc.classList.contains('is-on'),
       w: tW.classList.contains('is-on'),
       re: tRe.classList.contains('is-on'),
     });
+    const params = () => {
+      const o = opts();
+      return { q: find.value, field: fieldSel.value, cc: o.cc ? 1 : 0, w: o.w ? 1 : 0, re: o.re ? 1 : 0 };
+    };
     const esc = (s) => (s || '').replace(/[&<>"]/g, (c) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-    function render(msg) {
-      const n = matches.length;
+    function updateBar(msg) {
+      const n = ids.length;
       if (msg !== undefined) countEl.textContent = msg;
       else if (!find.value) countEl.textContent = '';
       else if (n === 0) countEl.textContent = 'δεν βρέθηκε';
-      else countEl.textContent = (index + 1) + ' / ' + n + (capped ? ' (από ' + total + ')' : '');
-
+      else countEl.textContent = (index + 1) + ' / ' + n;
       const has = n > 0;
       [btnPrev, btnNext, btnRep, btnExc].forEach((b) => (b.disabled = !has));
-      btnAll.disabled = total === 0;
+      btnAll.disabled = n === 0;
+    }
 
-      if (!has) { cur.innerHTML = ''; return; }
-      const m = matches[index];
-      let html = '<div class="card fr-current__card"><div class="card-body">'
-        + '<div class="fr-current__head">'
-        + '<a class="fw-semibold" href="/songs/' + m.id + '">' + esc(m.title) + '</a>'
-        + '<span class="fr-current__id">#' + m.id + '</span></div>';
-      m.fields.forEach((f) => {
-        html += '<div class="replace-field"><span class="replace-field__label">' + esc(f.label)
-          + '</span><span class="replace-field__snippet">' + f.html + '</span></div>';
-      });
-      cur.innerHTML = html + '</div></div>';
+    function renderMatch(d) { cur.innerHTML = d.html; }
+
+    function showCurrent() {
+      updateBar();
+      if (!ids.length) { cur.innerHTML = ''; return; }
+      const id = ids[index];
+      if (cache.has(id)) { renderMatch(cache.get(id)); return; }
+      cur.innerHTML = '<div class="text-muted p-3">…</div>';
+      const p = new URLSearchParams({ ...params(), id });
+      const s = ++seq;
+      fetch('/api/replace/preview?' + p).then((r) => r.json()).then((d) => {
+        if (s !== seq) return;
+        if (!d.error) { cache.set(id, d); renderMatch(d); }
+      }).catch(() => { if (s === seq) cur.innerHTML = '<div class="text-danger p-3">σφάλμα</div>'; });
     }
 
     function runFind() {
-      const q = find.value;
-      if (!q) { matches = []; total = 0; capped = false; excluded.clear(); index = 0; render(); return; }
-      const o = opts();
-      const p = new URLSearchParams({ q, cc: o.cc ? 1 : 0, w: o.w ? 1 : 0, re: o.re ? 1 : 0 });
-      render('αναζήτηση…');
-      fetch('/api/replace/find?' + p)
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.error) { matches = []; total = 0; render('σφάλμα: ' + d.error); return; }
-          matches = d.matches; total = d.total; capped = d.capped;
-          excluded.clear(); index = 0; render();
-        })
-        .catch(() => render('σφάλμα δικτύου'));
+      if (!find.value) { ids = []; index = 0; excluded.clear(); cache.clear(); updateBar(); cur.innerHTML = ''; return; }
+      updateBar('αναζήτηση…');
+      const p = new URLSearchParams(params());
+      const s = ++seq;
+      fetch('/api/replace/find?' + p).then((r) => r.json()).then((d) => {
+        if (s !== seq) return;
+        if (d.error) { ids = []; updateBar('σφάλμα: ' + d.error); cur.innerHTML = ''; return; }
+        ids = d.ids; index = 0; excluded.clear(); cache.clear(); showCurrent();
+      }).catch(() => { if (s === seq) updateBar('σφάλμα δικτύου'); });
     }
 
-    function move(d) { if (matches.length) { index = (index + d + matches.length) % matches.length; render(); } }
-    function drop() { matches.splice(index, 1); if (index >= matches.length) index = Math.max(0, matches.length - 1); }
+    function move(d) { if (ids.length) { index = (index + d + ids.length) % ids.length; showCurrent(); } }
+    function dropCurrent() {
+      cache.delete(ids[index]);
+      ids.splice(index, 1);
+      if (index >= ids.length) index = Math.max(0, ids.length - 1);
+    }
 
     function replaceCurrent() {
-      if (!matches.length) return;
-      const m = matches[index], o = opts();
+      if (!ids.length) return;
+      const id = ids[index], o = opts();
       btnRep.disabled = true;
       fetch('/api/replace/one', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: m.id, q: find.value, repl: repl.value, cc: o.cc, w: o.w, re: o.re }),
-      }).then((r) => r.json()).then(() => { drop(); total = Math.max(0, total - 1); render(); })
-        .catch(() => render('σφάλμα δικτύου'));
+        body: JSON.stringify({ id, q: find.value, field: fieldSel.value, repl: repl.value, cc: o.cc, w: o.w, re: o.re }),
+      }).then((r) => r.json()).then(() => { dropCurrent(); showCurrent(); })
+        .catch(() => updateBar('σφάλμα δικτύου'));
     }
 
     function excludeCurrent() {
-      if (!matches.length) return;
-      excluded.add(matches[index].id); drop(); render();
+      if (!ids.length) return;
+      excluded.add(ids[index]); dropCurrent(); showCurrent();
     }
 
     function replaceAll() {
       const o = opts();
-      render('αντικατάσταση…');
+      updateBar('αντικατάσταση…');
       fetch('/api/replace/all', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ q: find.value, repl: repl.value, cc: o.cc, w: o.w, re: o.re, exclude: [...excluded] }),
+        body: JSON.stringify({ q: find.value, field: fieldSel.value, repl: repl.value, cc: o.cc, w: o.w, re: o.re, exclude: [...excluded] }),
       }).then((r) => r.json()).then((d) => {
         countEl.textContent = 'αντικαταστάθηκαν ' + (d.count || 0) + ' εγγραφές';
         runFind();
-      }).catch(() => render('σφάλμα δικτύου'));
+      }).catch(() => updateBar('σφάλμα δικτύου'));
     }
 
     tRe.addEventListener('click', () => { tRe.classList.toggle('is-on'); tW.disabled = tRe.classList.contains('is-on'); runFind(); });
     [tCc, tW].forEach((t) => t.addEventListener('click', () => { if (!t.disabled) { t.classList.toggle('is-on'); runFind(); } }));
+    fieldSel.addEventListener('change', runFind);
     find.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(runFind, 400); });
-    find.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); matches.length ? move(e.shiftKey ? -1 : 1) : runFind(); } });
+    find.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ids.length ? move(e.shiftKey ? -1 : 1) : runFind(); } });
     repl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); replaceCurrent(); } });
     btnPrev.onclick = () => move(-1);
     btnNext.onclick = () => move(1);
@@ -165,12 +177,12 @@
     btnAll.onclick = () => {
       $('frAllFind').textContent = find.value;
       $('frAllRepl').textContent = repl.value;
-      $('frAllCount').textContent = Math.max(0, total - excluded.size);
+      $('frAllCount').textContent = ids.length;
       allModal.show();
     };
     $('frAllConfirm').onclick = () => { allModal.hide(); replaceAll(); };
 
-    render();
+    updateBar();
   })();
 </script>
 {% endblock %}

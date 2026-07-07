@@ -1,0 +1,32 @@
+{# Read-only rendition of a full record for the replace tool, matches highlighted. #}
+{% macro pf(attr) %}
+<label class="field-label">{{ labels[attr] }}</label>
+<div class="replace-view__value{% if attr == 'lyrics' %} replace-view__value--serif{% endif %}">{{ hl[attr]|safe }}</div>
+{% endmacro %}
+
+<div class="card fr-current__card">
+  <div class="card-body">
+    <div class="fr-current__head">
+      <a class="fw-semibold" href="{{ url_for('main.record', song_id=song.id) }}" target="_blank" rel="noopener">
+        {{ song.title or '—' }}
+      </a>
+      <span class="fr-current__id">#{{ song.id }}</span>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-4">{{ pf('title') }}</div>
+      <div class="col-md-4">{{ pf('composer') }}</div>
+      <div class="col-md-4">{{ pf('lyricist') }}</div>
+    </div>
+    <div class="row g-3 mt-1">
+      <div class="col-md-4">
+        <div class="mb-3">{{ pf('lyrics') }}</div>
+        {{ pf('bibliography') }}
+      </div>
+      <div class="col-md-8">
+        <div class="mb-3">{{ pf('archive') }}</div>
+        {{ pf('notes') }}
+      </div>
+    </div>
+  </div>
+</div>

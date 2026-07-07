@@ -7,7 +7,7 @@
     <p class="eyebrow">Αναζήτηση</p>
     {% if q %}
       <h1 class="searchhead__title">«{{ q }}»</h1>
-      <p class="searchhead__count">{{ total|gr }} αποτελέσματα</p>
+      <p class="searchhead__count">{{ total|gr }} αποτελέσματα{% for v, l in field_options if v == field %} · στο πεδίο «{{ l }}»{% endfor %}</p>
     {% else %}
       <h1 class="searchhead__title">Αναζήτηση στο αρχείο</h1>
     {% endif %}
@@ -42,7 +42,7 @@
           {% if page <= 1 %}
           <span class="page-link" aria-hidden="true">‹</span>
           {% else %}
-          <a class="page-link" href="{{ url_for('main.search', q=q, page=page-1) }}" aria-label="Προηγούμενη">‹</a>
+          <a class="page-link" href="{{ url_for('main.search', q=q, field=field, page=page-1) }}" aria-label="Προηγούμενη">‹</a>
           {% endif %}
         </li>
         {% for p in page_items %}
@@ -50,7 +50,7 @@
           <li class="page-item disabled"><span class="page-link">…</span></li>
           {% else %}
           <li class="page-item {{ 'active' if p == page }}">
-            <a class="page-link" href="{{ url_for('main.search', q=q, page=p) }}">{{ p|gr }}</a>
+            <a class="page-link" href="{{ url_for('main.search', q=q, field=field, page=p) }}">{{ p|gr }}</a>
           </li>
           {% endif %}
         {% endfor %}
@@ -58,7 +58,7 @@
           {% if page >= total_pages %}
           <span class="page-link" aria-hidden="true">›</span>
           {% else %}
-          <a class="page-link" href="{{ url_for('main.search', q=q, page=page+1) }}" aria-label="Επόμενη">›</a>
+          <a class="page-link" href="{{ url_for('main.search', q=q, field=field, page=page+1) }}" aria-label="Επόμενη">›</a>
           {% endif %}
         </li>
       </ul>

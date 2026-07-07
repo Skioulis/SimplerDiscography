@@ -87,6 +87,32 @@ def _page_window(page: int, total_pages: int, edge: int = 1, around: int = 2) ->
     return out
 
 
+def _song_rows():
+    """Lightweight scan of id + all text fields (Core rows, keyed by column)."""
+    cols = [Song.id] + [getattr(Song, f) for f in Song.SEARCHABLE_FIELDS]
+    return db.session.execute(select(*cols).order_by(Song.id)).mappings()
+
+
+def _fields_for(field):
+    """The field(s) a search/replace targets: one field, or all if unspecified."""
+    return (field,) if field in Song.SEARCHABLE_FIELDS else Song.SEARCHABLE_FIELDS
+
+
+def _field_hits(q, field):
+    """Songs whose `field` contains every folded token of q (accent-insensitive)."""
+    tokens = fold(q).split()
+    if not tokens:
+        return []
+    return [row for row in _song_rows()
+            if all(t in fold(row[field] or "") for t in tokens)]
+
+
+@main.app_context_processor
+def _inject_field_options():
+    """Field choices for the search/replace scope dropdowns (used in templates)."""
+    return {"field_options": [(f, Song.LABELS[f]) for f in Song.SEARCHABLE_FIELDS]}
+
+
 @main.route("/")
 def dashboard():
     return render_template("dashboard.html", stats=dashboard_stats())
@@ -177,53 +203,61 @@ def song_delete(song_id: int):
     return redirect(url_for("main.dashboard"))
 
 
+def _row_dict(r):
+    return {"id": r["id"], "title": r["title"], "composer": r["composer"], "lyricist": r["lyricist"]}
+
+
 @main.route("/api/search")
 def api_search():
     """Live search for the modal. Returns JSON; empty until MIN_SEARCH_LEN chars."""
     q = (request.args.get("q") or "").strip()
-    fts = _fts_query(q)
+    field = request.args.get("field", "")
     results: list = []
     total = 0
-    if len(q) >= MIN_SEARCH_LEN and fts:
-        rows = db.session.execute(
-            text(
-                "SELECT s.id, s.title, s.composer, s.lyricist "
-                "FROM song_fts f JOIN song s ON s.id = f.rowid "
-                "WHERE song_fts MATCH :q ORDER BY rank LIMIT :lim"
-            ),
-            {"q": fts, "lim": LIVE_SEARCH_LIMIT},
-        ).all()
-        results = [
-            {"id": r.id, "title": r.title, "composer": r.composer, "lyricist": r.lyricist}
-            for r in rows
-        ]
-        total = db.session.execute(
-            text("SELECT COUNT(*) FROM song_fts WHERE song_fts MATCH :q"),
-            {"q": fts},
-        ).scalar_one()
+    if len(q) >= MIN_SEARCH_LEN:
+        if field in Song.SEARCHABLE_FIELDS:
+            hits = _field_hits(q, field)
+            total = len(hits)
+            results = [_row_dict(r) for r in hits[:LIVE_SEARCH_LIMIT]]
+        elif (fts := _fts_query(q)):
+            rows = db.session.execute(
+                text(
+                    "SELECT s.id, s.title, s.composer, s.lyricist "
+                    "FROM song_fts f JOIN song s ON s.id = f.rowid "
+                    "WHERE song_fts MATCH :q ORDER BY rank LIMIT :lim"
+                ),
+                {"q": fts, "lim": LIVE_SEARCH_LIMIT},
+            ).mappings().all()
+            results = [_row_dict(r) for r in rows]
+            total = db.session.execute(
+                text("SELECT COUNT(*) FROM song_fts WHERE song_fts MATCH :q"),
+                {"q": fts},
+            ).scalar_one()
     return jsonify({"results": results, "total": total})
 
 
 @main.route("/search")
 def search():
     q = (request.args.get("q") or "").strip()
+    field = request.args.get("field", "")
     try:
         page = max(1, int(request.args.get("page", 1)))
     except (TypeError, ValueError):
         page = 1
 
-    fts = _fts_query(q)
     results: list = []
     total = 0
-    total_pages = 0
-    if fts:
+    if q and field in Song.SEARCHABLE_FIELDS:
+        hits = _field_hits(q, field)
+        total = len(hits)
+        page = min(page, (total + PAGE_SIZE - 1) // PAGE_SIZE) if total else page
+        results = [_row_dict(r) for r in hits[(page - 1) * PAGE_SIZE: page * PAGE_SIZE]]
+    elif q and (fts := _fts_query(q)):
         total = db.session.execute(
             text("SELECT COUNT(*) FROM song_fts WHERE song_fts MATCH :q"),
             {"q": fts},
         ).scalar_one()
-        total_pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
-        if total_pages:
-            page = min(page, total_pages)
+        page = min(page, (total + PAGE_SIZE - 1) // PAGE_SIZE) if total else page
         results = db.session.execute(
             text(
                 "SELECT s.id, s.title, s.composer, s.lyricist "
@@ -231,11 +265,13 @@ def search():
                 "WHERE song_fts MATCH :q ORDER BY rank LIMIT :lim OFFSET :off"
             ),
             {"q": fts, "lim": PAGE_SIZE, "off": (page - 1) * PAGE_SIZE},
-        ).all()
+        ).mappings().all()
 
+    total_pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
     return render_template(
         "search.html",
         q=q,
+        field=field,
         results=results,
         total=total,
         page=page,
@@ -248,9 +284,6 @@ def search():
 # --------------------------------------------------------------------------- #
 # Find & replace (main area) — IDE-style: options, per-match review, replace all
 # --------------------------------------------------------------------------- #
-
-FIND_CAP = 500  # max matches returned to the client for navigation/preview
-
 
 def _build_pattern(find, case_sensitive, whole_word, regex):
     """Compile a search pattern from the options. Returns (pattern, error)."""
@@ -286,9 +319,19 @@ def _highlight(value, pattern, ctx=50):
     return ("…" if start else "") + "".join(parts) + ("…" if end < len(value) else "")
 
 
-def _song_rows():
-    cols = [Song.id] + [getattr(Song, f) for f in Song.SEARCHABLE_FIELDS]
-    return db.session.execute(select(*cols).order_by(Song.id)).mappings()
+def _highlight_all(value, pattern):
+    """Full value, HTML-escaped, with every match wrapped in <mark> (no truncation)."""
+    if not value:
+        return ""
+    parts, last = [], 0
+    for mm in pattern.finditer(value):
+        if mm.start() == mm.end():
+            continue
+        parts.append(str(escape(value[last:mm.start()])))
+        parts.append("<mark>" + str(escape(mm.group(0))) + "</mark>")
+        last = mm.end()
+    parts.append(str(escape(value[last:])))
+    return "".join(parts)
 
 
 def _replacer(repl, regex):
@@ -296,9 +339,9 @@ def _replacer(repl, regex):
     return repl if regex else (lambda m: repl)
 
 
-def _apply_sub(song, pattern, repl_arg):
+def _apply_sub(song, pattern, repl_arg, fields):
     changed = False
-    for f in Song.SEARCHABLE_FIELDS:
+    for f in fields:
         val = getattr(song, f) or ""
         new = pattern.sub(repl_arg, val)
         if new != val:
@@ -314,6 +357,7 @@ def replace():
 
 @main.route("/api/replace/find")
 def api_replace_find():
+    """All matching record ids (no limit). Previews are fetched per match on demand."""
     pattern, err = _build_pattern(
         request.args.get("q", ""),
         request.args.get("cc") == "1",
@@ -323,21 +367,37 @@ def api_replace_find():
     if err:
         return jsonify({"error": err}), 400
     if pattern is None:
-        return jsonify({"total": 0, "capped": False, "matches": []})
+        return jsonify({"total": 0, "ids": []})
+    fields = _fields_for(request.args.get("field", ""))
+    ids = [
+        row["id"] for row in _song_rows()
+        if any(pattern.search(row[f] or "") for f in fields)
+    ]
+    return jsonify({"total": len(ids), "ids": ids})
 
-    matches, total = [], 0
-    for row in _song_rows():
-        fields = [
-            {"label": Song.LABELS[f], "html": _highlight(row[f] or "", pattern)}
-            for f in Song.SEARCHABLE_FIELDS
-            if pattern.search(row[f] or "")
-        ]
-        if not fields:
-            continue
-        total += 1
-        if len(matches) < FIND_CAP:
-            matches.append({"id": row["id"], "title": row["title"] or "—", "fields": fields})
-    return jsonify({"total": total, "capped": total > len(matches), "matches": matches})
+
+@main.route("/api/replace/preview")
+def api_replace_preview():
+    """Highlighted preview of one record for the given search (used while navigating)."""
+    pattern, err = _build_pattern(
+        request.args.get("q", ""),
+        request.args.get("cc") == "1",
+        request.args.get("w") == "1",
+        request.args.get("re") == "1",
+    )
+    if err or pattern is None:
+        return jsonify({"error": err or "empty"}), 400
+    song = db.session.get(Song, request.args.get("id", type=int))
+    if song is None:
+        return jsonify({"error": "not found"}), 404
+    scope = set(_fields_for(request.args.get("field", "")))
+    hl = {
+        f: (_highlight_all(getattr(song, f) or "", pattern) if f in scope
+            else str(escape(getattr(song, f) or "")))
+        for f in Song.SEARCHABLE_FIELDS
+    }
+    html = render_template("_replace_preview.html", song=song, hl=hl, labels=Song.LABELS)
+    return jsonify({"id": song.id, "html": html})
 
 
 @main.route("/api/replace/one", methods=["POST"])
@@ -350,7 +410,8 @@ def api_replace_one():
     song = db.session.get(Song, data.get("id"))
     if song is None:
         return jsonify({"ok": False, "error": "not found"}), 404
-    changed = _apply_sub(song, pattern, _replacer(data.get("repl", ""), data.get("re")))
+    fields = _fields_for(data.get("field", ""))
+    changed = _apply_sub(song, pattern, _replacer(data.get("repl", ""), data.get("re")), fields)
     if changed:
         db.session.commit()
     return jsonify({"ok": True, "changed": changed})
@@ -364,17 +425,18 @@ def api_replace_all():
     if err or pattern is None:
         return jsonify({"ok": False, "error": err or "empty"}), 400
     exclude = set(data.get("exclude", []))
+    fields = _fields_for(data.get("field", ""))
     ids = [
         row["id"] for row in _song_rows()
         if row["id"] not in exclude
-        and any(pattern.search(row[f] or "") for f in Song.SEARCHABLE_FIELDS)
+        and any(pattern.search(row[f] or "") for f in fields)
     ]
     repl_arg = _replacer(data.get("repl", ""), data.get("re"))
     count = 0
     for start in range(0, len(ids), 500):
         chunk = ids[start:start + 500]
         for song in db.session.scalars(select(Song).where(Song.id.in_(chunk))):
-            if _apply_sub(song, pattern, repl_arg):
+            if _apply_sub(song, pattern, repl_arg, fields):
                 count += 1
     if count:
         db.session.commit()
