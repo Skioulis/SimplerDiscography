@@ -1,32 +1,30 @@
-{# Read-only rendition of a full record for the replace tool, matches highlighted. #}
-{% macro pf(attr) %}
-<label class="field-label">{{ labels[attr] }}</label>
-<div class="replace-view__value{% if attr == 'lyrics' %} replace-view__value--serif{% endif %}">{{ hl[attr]|safe }}</div>
+{# Read-only rendition of a full record for the replace tool, matches highlighted.
+   Layout comes from dataset.layout, so it mirrors the record card of whichever
+   archive is being edited. #}
+
+{% macro pf(dataset, hl, attr, prose=False) %}
+<label class="field-label">{{ dataset.label(attr) }}</label>
+<div class="replace-view__value{% if prose %} replace-view__value--serif{% endif %}">{{ hl[attr]|safe }}</div>
 {% endmacro %}
 
 <div class="card fr-current__card">
   <div class="card-body">
     <div class="fr-current__head">
-      <a class="fw-semibold" href="{{ url_for('main.record', song_id=song.id) }}" target="_blank" rel="noopener">
-        {{ song.title or '—' }}
+      <a class="fw-semibold" href="{{ url_for('main.record', dataset=dataset, rec_id=record.id) }}"
+         target="_blank" rel="noopener">
+        {{ record[dataset.result_title] or '—' }}
       </a>
-      <span class="fr-current__id">#{{ song.id }}</span>
+      <span class="fr-current__id">#{{ record.id }}</span>
     </div>
 
-    <div class="row g-3">
-      <div class="col-md-4">{{ pf('title') }}</div>
-      <div class="col-md-4">{{ pf('composer') }}</div>
-      <div class="col-md-4">{{ pf('lyricist') }}</div>
-    </div>
-    <div class="row g-3 mt-1">
-      <div class="col-md-4">
-        <div class="mb-3">{{ pf('lyrics') }}</div>
-        {{ pf('bibliography') }}
+    {% for row in dataset.layout %}
+    <div class="row g-3{% if not loop.first %} mt-1{% endif %}">
+      {% for f in row %}
+      <div class="col-md-{{ f.width }}">
+        {{ pf(dataset, hl, f.attr, f.widget == 'textarea' and f.rows >= 10) }}
       </div>
-      <div class="col-md-8">
-        <div class="mb-3">{{ pf('archive') }}</div>
-        {{ pf('notes') }}
-      </div>
+      {% endfor %}
     </div>
+    {% endfor %}
   </div>
 </div>

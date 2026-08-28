@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Εύρεση & Αντικατάσταση — Δισκογραφικό Αρχείο{% endblock %}
+{% block title %}Εύρεση &amp; Αντικατάσταση — {{ dataset.title }}{% endblock %}
 
 {% block content %}
 <main class="wrap wrap--replace">
@@ -76,6 +76,8 @@
     const btnRep = $('frReplace'), btnAll = $('frReplaceAll'), btnExc = $('frExclude');
     const allModal = new bootstrap.Modal($('frAllModal'));
 
+    const DS = {{ dataset.key|tojson }};
+
     let ids = [], index = 0, excluded = new Set(), cache = new Map(), timer = null, seq = 0;
 
     const opts = () => ({
@@ -85,7 +87,7 @@
     });
     const params = () => {
       const o = opts();
-      return { q: find.value, field: fieldSel.value, cc: o.cc ? 1 : 0, w: o.w ? 1 : 0, re: o.re ? 1 : 0 };
+      return { ds: DS, q: find.value, field: fieldSel.value, cc: o.cc ? 1 : 0, w: o.w ? 1 : 0, re: o.re ? 1 : 0 };
     };
     const esc = (s) => (s || '').replace(/[&<>"]/g, (c) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -142,7 +144,7 @@
       btnRep.disabled = true;
       fetch('/api/replace/one', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, q: find.value, field: fieldSel.value, repl: repl.value, cc: o.cc, w: o.w, re: o.re }),
+        body: JSON.stringify({ ds: DS, id, q: find.value, field: fieldSel.value, repl: repl.value, cc: o.cc, w: o.w, re: o.re }),
       }).then((r) => r.json()).then(() => { dropCurrent(); showCurrent(); })
         .catch(() => updateBar('σφάλμα δικτύου'));
     }
@@ -157,7 +159,7 @@
       updateBar('αντικατάσταση…');
       fetch('/api/replace/all', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ q: find.value, field: fieldSel.value, repl: repl.value, cc: o.cc, w: o.w, re: o.re, exclude: [...excluded] }),
+        body: JSON.stringify({ ds: DS, q: find.value, field: fieldSel.value, repl: repl.value, cc: o.cc, w: o.w, re: o.re, exclude: [...excluded] }),
       }).then((r) => r.json()).then((d) => {
         countEl.textContent = 'αντικαταστάθηκαν ' + (d.count || 0) + ' εγγραφές';
         runFind();

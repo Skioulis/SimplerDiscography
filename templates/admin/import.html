@@ -5,28 +5,42 @@
 <div class="card">
   <div class="card-body p-4">
     <h2 class="h5">Εισαγωγή δεδομένων</h2>
+
+    <p class="text-muted mb-2">Επιλέξτε αρχείο προορισμού:</p>
+    <ul class="nav nav-pills admin-dstabs mb-3">
+      {% for d in all_datasets %}
+      <li class="nav-item">
+        <a class="nav-link {{ 'active' if d.key == dataset.key }} {{ d.theme }}"
+           href="{{ url_for('main.admin_import', ds=d.key) }}">{{ d.title }}</a>
+      </li>
+      {% endfor %}
+    </ul>
+
     <p class="text-muted mb-2">Ανεβάστε ένα από τα δύο:</p>
     <ul class="text-muted">
       <li>αρχείο <strong>CSV</strong> (UTF-8, χωρισμένο με «;») με στήλες:
-        <code>{{ columns | join('; ') }}</code></li>
+        <code>{% if id_column %}{{ id_column }}; {% endif %}{{ columns | join('; ') }}</code>
+        — αντικαθιστά <strong>μόνο</strong> το αρχείο «{{ dataset.title }}»</li>
       <li>αρχείο βάσης <strong>.db</strong> (π.χ. κατεβασμένο από τη
-        <a href="{{ url_for('main.admin_download') }}">Λήψη βάσης</a>)</li>
+        <a href="{{ url_for('main.admin_download') }}">Λήψη βάσης</a>) — αποκαθιστά
+        <strong>όλα</strong> τα αρχεία που περιέχει</li>
     </ul>
 
     <div class="alert alert-warning">
-      <strong>Προσοχή:</strong> η εισαγωγή <strong>αντικαθιστά όλα τα υπάρχοντα
+      <strong>Προσοχή:</strong> η εισαγωγή <strong>αντικαθιστά τα υπάρχοντα
       δεδομένα</strong>. Κατεβάστε πρώτα ένα αντίγραφο από τη
       <a href="{{ url_for('main.admin_download') }}">Λήψη βάσης</a> αν το χρειάζεστε.
     </div>
 
-    <form id="importForm" method="post" action="{{ url_for('main.admin_import') }}"
+    <form id="importForm" method="post"
+          action="{{ url_for('main.admin_import', ds=dataset.key) }}"
           enctype="multipart/form-data">
       <div class="mb-3">
         <label class="form-label" for="csv">Αρχείο CSV ή .db</label>
         <input class="form-control" type="file" id="csv" name="csv"
                accept=".csv,text/csv,.db,.sqlite,application/octet-stream" required>
       </div>
-      <button class="btn btn-danger" type="submit">Αντικατάσταση βάσης</button>
+      <button class="btn btn-danger" type="submit">Αντικατάσταση δεδομένων</button>
     </form>
   </div>
 </div>
@@ -43,8 +57,11 @@
       </div>
       <div class="modal-body">
         <div data-state="confirm">
-          <p class="mb-1">Θα αντικατασταθούν <strong>όλα</strong> τα δεδομένα με το
-            περιεχόμενο του αρχείου <span id="importFileName" class="fw-semibold"></span>.</p>
+          <p class="mb-1">Θα αντικατασταθούν τα δεδομένα του αρχείου
+            <strong>«{{ dataset.title }}»</strong> με το περιεχόμενο του
+            <span id="importFileName" class="fw-semibold"></span>.</p>
+          <p class="text-muted mb-1">Αν ανεβάσετε αρχείο <strong>.db</strong>,
+            αποκαθίστανται όλα τα αρχεία που περιέχει.</p>
           <p class="text-muted mb-0">Η ενέργεια δεν μπορεί να αναιρεθεί.</p>
         </div>
         <div data-state="progress" hidden>

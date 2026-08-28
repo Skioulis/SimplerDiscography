@@ -1,23 +1,24 @@
 {% extends "base.html" %}
-{% from "_song_fields.html" import song_fields %}
-{% block title %}Νέο τραγούδι — Δισκογραφικό Αρχείο{% endblock %}
+{% from "_record_fields.html" import record_fields %}
+{% block title %}{{ dataset.new_heading }} — {{ dataset.title }}{% endblock %}
 
 {% block content %}
 <main class="wrap wrap--record">
 
-  <form class="card record is-editing" method="post" action="{{ url_for('main.song_create') }}">
+  <form class="card record is-editing" method="post"
+        action="{{ url_for('main.record_create', dataset=dataset) }}">
 
     <div class="card-header record__head">
-      <h1 class="record__heading h5 mb-0">Νέο τραγούδι</h1>
+      <h1 class="record__heading h5 mb-0">{{ dataset.new_heading }}</h1>
     </div>
 
     <div class="card-body record__grid">
-      {{ song_fields(song, editable=True) }}
+      {{ record_fields(dataset, record, editable=True) }}
     </div>
 
     <div class="card-footer record__foot record__foot--new">
       <div class="record__actions">
-        <a class="btn btn-outline-secondary" href="{{ url_for('main.dashboard') }}">Ακύρωση</a>
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.dataset_dashboard', dataset=dataset) }}">Ακύρωση</a>
         <button type="submit" class="btn btn-primary">Προσθήκη</button>
       </div>
     </div>

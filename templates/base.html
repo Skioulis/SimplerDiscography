@@ -7,9 +7,18 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="{{ dataset.theme }}">
   <nav class="navbar navbar-expand-lg sticky-top app-nav">
     <div class="container-fluid">
+      <button class="app-nav__sidetoggle" type="button" data-bs-toggle="collapse"
+              data-bs-target="#appSide" aria-controls="appSide" aria-expanded="false"
+              aria-label="Εναλλαγή αρχείων">
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" fill="none"/>
+        </svg>
+      </button>
+
       <a class="navbar-brand app-nav__brand" href="{{ url_for('main.dashboard') }}">
         <svg viewBox="0 0 32 32" aria-hidden="true">
           <circle cx="16" cy="16" r="15" fill="#1c140f"/>
@@ -28,35 +37,71 @@
 
       <div class="collapse navbar-collapse" id="navmenu">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.dashboard') }}">Πίνακας</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.record', song_id=1) }}">Περιήγηση</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.song_new') }}">+ Προσθήκη</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.replace') }}">Εύρεση & Αντικατάσταση</a></li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('main.dataset_dashboard', dataset=dataset) }}">Πίνακας</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('main.goto', dataset=dataset, id=1) }}">Περιήγηση</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('main.record_new', dataset=dataset) }}">+ Προσθήκη</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('main.replace', ds=dataset.key) }}">Εύρεση &amp; Αντικατάσταση</a>
+          </li>
         </ul>
 
-        <a class="app-nav__searchtrigger" href="{{ url_for('main.search') }}"
+        <a class="app-nav__searchtrigger" href="{{ url_for('main.search', ds=dataset.key) }}"
            data-bs-toggle="modal" data-bs-target="#searchModal" role="button">
           <svg viewBox="0 0 20 20" aria-hidden="true">
             <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/>
             <line x1="12.5" y1="12.5" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
-          <span>Αναζήτηση…</span>
+          <span>Αναζήτηση στο «{{ dataset.title }}»…</span>
         </a>
       </div>
     </div>
   </nav>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="flash" role="status">
-      {% for category, m in messages %}
-      <div class="alert alert-{{ {'danger': 'danger', 'warning': 'warning', 'info': 'info'}.get(category, 'success') }} mb-2">{{ m }}</div>
-      {% endfor %}
-    </div>
-    {% endif %}
-  {% endwith %}
+  <div class="app-shell">
+    <aside class="app-side collapse" id="appSide">
+      <p class="app-side__eyebrow">Αρχεία</p>
+      <ul class="app-side__list">
+        {% for d in all_datasets %}
+        <li>
+          <a class="app-side__link {{ d.theme }}{% if d.key == dataset.key %} is-active{% endif %}"
+             href="{{ url_for('main.dataset_dashboard', dataset=d) }}"
+             {% if d.key == dataset.key %}aria-current="page"{% endif %}>
+            <span class="app-side__dot" aria-hidden="true"></span>
+            <span class="app-side__name">{{ d.title }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="app-side__eyebrow app-side__eyebrow--late">Εργαλεία</p>
+      <ul class="app-side__list">
+        <li>
+          <a class="app-side__link app-side__link--plain" href="{{ url_for('main.admin_home') }}">
+            <span class="app-side__name">Διαχείριση</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
 
-  {% block content %}{% endblock %}
+    <div class="app-main">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash" role="status">
+          {% for category, m in messages %}
+          <div class="alert alert-{{ {'danger': 'danger', 'warning': 'warning', 'info': 'info'}.get(category, 'success') }} mb-2">{{ m }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </div>
 
   <!-- Live search modal -->
   <div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
@@ -71,6 +116,11 @@
             <input type="search" id="modalSearchInput" class="form-control"
                    placeholder="Αναζήτηση στο αρχείο…" autocomplete="off" aria-label="Αναζήτηση">
           </div>
+          <select id="modalSearchScope" class="form-select form-select-sm search-modal__scope"
+                  aria-label="Εύρος αναζήτησης">
+            <option value="">{{ dataset.title }}</option>
+            <option value="all">Όλα τα αρχεία</option>
+          </select>
           <select id="modalSearchField" class="form-select form-select-sm search-modal__scope"
                   aria-label="Πεδίο αναζήτησης">
             <option value="">Όλα τα πεδία</option>
@@ -80,7 +130,7 @@
         </div>
         <div class="modal-body">
           <p class="search-modal__hint" id="modalSearchHint">Πληκτρολογήστε τουλάχιστον 3 χαρακτήρες.</p>
-          <ol class="results search-modal__results" id="modalSearchResults"></ol>
+          <div id="modalSearchResults"></div>
         </div>
         <div class="modal-footer">
           <a class="btn btn-outline-secondary btn-sm" id="modalSearchAll" href="#" hidden></a>
@@ -100,6 +150,8 @@
       var results = document.getElementById('modalSearchResults');
       var allLink = document.getElementById('modalSearchAll');
       var fieldSel = document.getElementById('modalSearchField');
+      var scopeSel = document.getElementById('modalSearchScope');
+      var DS = {{ dataset.key|tojson }};
       var MIN = 3, timer = null, controller = null;
       var items = [], active = -1;   // result anchors + highlighted index
 
@@ -109,8 +161,8 @@
         });
       }
       function setHint(text) { hint.textContent = text; hint.hidden = false; }
-
       function clearResults() { results.innerHTML = ''; items = []; active = -1; }
+
       function setActive(i) {
         if (active >= 0 && items[active]) items[active].parentNode.classList.remove('is-active');
         active = i;
@@ -121,31 +173,65 @@
         }
       }
 
+      // Field scoping is per-archive, so it can't apply across all of them.
+      function syncFieldState() {
+        var cross = scopeSel.value === 'all';
+        fieldSel.disabled = cross;
+        if (cross) fieldSel.value = '';
+      }
+      scopeSel.addEventListener('change', function () {
+        syncFieldState();
+        input.dispatchEvent(new Event('input'));
+      });
+      syncFieldState();
+
       modalEl.addEventListener('shown.bs.modal', function () { input.focus(); input.select(); });
+
+      function searchUrl(q, page) {
+        var u = (page ? '/search?q=' : '/api/search?q=') + encodeURIComponent(q);
+        if (scopeSel.value === 'all') u += '&scope=all';
+        else u += '&ds=' + encodeURIComponent(DS);
+        if (fieldSel.value && scopeSel.value !== 'all') {
+          u += '&field=' + encodeURIComponent(fieldSel.value);
+        }
+        return u;
+      }
 
       function render(data, q) {
         clearResults();
-        if (!data.results.length) {
+        if (!data.total || !data.groups.length) {
           setHint('Δεν βρέθηκαν αποτελέσματα για «' + q + '».');
           allLink.hidden = true;
           return;
         }
         hint.hidden = true;
-        data.results.forEach(function (r) {
-          var meta = [r.composer, r.lyricist]
-            .filter(function (x) { return x && x !== '-'; }).join(' · ');
-          var li = document.createElement('li');
-          li.className = 'result';
-          li.innerHTML = '<a class="result__link" href="/songs/' + r.id + '">'
-            + '<span class="result__title">' + esc(r.title || '—') + '</span>'
-            + '<span class="result__meta">' + esc(meta) + '</span></a>';
-          results.appendChild(li);
+        var shown = 0;
+        data.groups.forEach(function (g) {
+          if (data.groups.length > 1) {
+            var h = document.createElement('p');
+            h.className = 'search-modal__group ' + g.theme;
+            h.innerHTML = '<span class="search-modal__groupname">' + esc(g.title) + '</span>'
+              + '<span class="search-modal__groupcount">' + g.total.toLocaleString('el') + '</span>';
+            results.appendChild(h);
+          }
+          var ol = document.createElement('ol');
+          ol.className = 'results search-modal__results';
+          g.results.forEach(function (r) {
+            shown += 1;
+            var meta = (r.meta || []).filter(function (x) { return x && x !== '-'; }).join(' · ');
+            var li = document.createElement('li');
+            li.className = 'result';
+            li.innerHTML = '<a class="result__link" href="' + r.url + '">'
+              + '<span class="result__title">' + esc(r.title || '—') + '</span>'
+              + '<span class="result__meta">' + esc(meta) + '</span></a>';
+            ol.appendChild(li);
+          });
+          results.appendChild(ol);
         });
         items = Array.prototype.slice.call(results.querySelectorAll('.result__link'));
-        allLink.href = '/search?q=' + encodeURIComponent(q)
-          + (fieldSel.value ? '&field=' + encodeURIComponent(fieldSel.value) : '');
+        allLink.href = searchUrl(q, true);
         allLink.textContent = 'Όλα τα ' + data.total.toLocaleString('el') + ' αποτελέσματα';
-        allLink.hidden = data.total <= data.results.length;
+        allLink.hidden = data.total <= shown;
       }
 
       input.addEventListener('input', function () {
@@ -160,9 +246,7 @@
         timer = setTimeout(function () {
           if (controller) controller.abort();
           controller = new AbortController();
-          var url = '/api/search?q=' + encodeURIComponent(q)
-            + '&field=' + encodeURIComponent(fieldSel.value);
-          fetch(url, { signal: controller.signal })
+          fetch(searchUrl(q, false), { signal: controller.signal })
             .then(function (r) { return r.json(); })
             .then(function (d) { render(d, q); })
             .catch(function (e) { if (e.name !== 'AbortError') setHint('Σφάλμα αναζήτησης.'); });
@@ -186,7 +270,7 @@
             window.location = items[active].getAttribute('href');
           } else {
             var q = input.value.trim();
-            if (q) window.location = '/search?q=' + encodeURIComponent(q);
+            if (q) window.location = searchUrl(q, true);
           }
         }
       });

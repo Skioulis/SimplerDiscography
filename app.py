@@ -21,11 +21,12 @@ MEDIA_DIR = os.environ.get("MEDIA_DIR", os.path.join(BASE_DIR, "media"))
 def _include_object(obj, name, type_, reflected, compare_to):
     """Keep Alembic autogenerate from touching the FTS5 objects.
 
-    The song_fts virtual table and its shadow tables (song_fts_data,
-    song_fts_idx, ...) are created by hand in the migration, not from model
+    Every archive has an FTS5 companion (song_fts, disc45_fts, disc78_fts,
+    bio_fts) plus its shadow tables (..._data, ..._idx, ..._config,
+    ..._docsize). All are created by hand in the migrations, not from model
     metadata, so exclude them from diffs to avoid spurious drops.
     """
-    if type_ == "table" and name.startswith("song_fts"):
+    if type_ == "table" and "_fts" in name:
         return False
     return True
 
@@ -54,9 +55,12 @@ def create_app(config: dict | None = None) -> Flask:
     migrate.init_app(app, db, render_as_batch=True, include_object=_include_object)
 
     # Import models so their tables register with the metadata.
-    from models import Song  # noqa: F401
-    from views import main
+    from models import Biography, Disc45, Disc78, Song  # noqa: F401
+    from views import DatasetConverter, main
 
+    # Must be registered before the blueprint: the dataset-scoped URL rules use
+    # the "ds" converter, and rules are compiled as the blueprint is registered.
+    app.url_map.converters["ds"] = DatasetConverter
     app.register_blueprint(main)
 
     return app

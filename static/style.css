@@ -803,3 +803,204 @@ body {
 @media (max-width: 767.98px) {
   .kpis { justify-content: center; }
 }
+
+/* ==========================================================================
+   Multi-archive chrome: sidebar, per-dataset accents, grouped results
+   ========================================================================== */
+
+/* --- per-dataset accent -------------------------------------------------- */
+/* Each archive keeps the app's warm palette and changes only --accent, which
+   the cards, charts and rank bars already read. The two ΜΑΝΙΑΤΗ archives nod
+   to their Access forms (red / teal) without adopting their chrome. */
+
+.theme-songs  { --dataset-accent: var(--petrol); }
+.theme-disc45 { --dataset-accent: var(--oxblood); }
+.theme-disc78 { --dataset-accent: #0f6e6a; }
+.theme-bios   { --dataset-accent: #3c4f7a; }
+
+body.theme-songs,
+body.theme-disc45,
+body.theme-disc78,
+body.theme-bios { --accent: var(--dataset-accent); }
+
+/* The masthead disc uses currentColor for its label plate. */
+.theme-disc45 .disc,
+.theme-disc78 .disc,
+.theme-bios .disc { color: var(--dataset-accent); }
+
+/* --- shell: sidebar + content ------------------------------------------- */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.app-side {
+  padding: 1.5rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.app-side__eyebrow {
+  font-size: .7rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 .5rem .5rem;
+}
+.app-side__eyebrow--late { margin-top: 1.5rem; }
+
+.app-side__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+
+.app-side__link {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .5rem .75rem;
+  border-radius: 10px;
+  border-left: 3px solid transparent;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 500;
+  line-height: 1.25;
+  transition: background-color .12s ease, color .12s ease;
+}
+.app-side__link:hover,
+.app-side__link:focus-visible {
+  background: rgba(36, 28, 21, .05);
+  color: var(--ink);
+}
+.app-side__link.is-active {
+  background: var(--surface);
+  border-left-color: var(--dataset-accent);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(36, 28, 21, .06);
+}
+
+.app-side__dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--dataset-accent);
+  opacity: .55;
+}
+.app-side__link.is-active .app-side__dot { opacity: 1; }
+.app-side__link--plain { padding-left: 1.45rem; }
+
+.app-side__name { min-width: 0; }
+
+.app-nav__sidetoggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-right: .5rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.app-nav__sidetoggle:hover { color: var(--ink); border-color: var(--brass); }
+.app-nav__sidetoggle svg { width: 18px; height: 18px; }
+
+.app-main { min-width: 0; }
+
+@media (min-width: 992px) {
+  .app-shell { grid-template-columns: 232px minmax(0, 1fr); }
+
+  /* The sidebar is permanent on wide screens: neutralise the Bootstrap
+     collapse that drives it on narrow ones. */
+  .app-side.collapse:not(.show) { display: block; }
+  .app-side {
+    position: sticky;
+    top: 61px;
+    align-self: start;
+    height: calc(100vh - 61px);
+    overflow-y: auto;
+    border-bottom: 0;
+    border-right: 1px solid var(--line);
+  }
+  .app-nav__sidetoggle { display: none; }
+}
+
+/* --- grouped results (cross-archive search) ----------------------------- */
+
+.resultgroup {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.resultgroup + .resultgroup { margin-top: 1.75rem; }
+
+.resultgroup__head {
+  display: flex;
+  align-items: baseline;
+  gap: .75rem;
+  padding-bottom: .4rem;
+  border-bottom: 2px solid var(--dataset-accent);
+}
+.resultgroup__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+.resultgroup__count {
+  margin-left: auto;
+  font-size: .8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.resultgroup__more {
+  align-self: flex-start;
+  font-size: .85rem;
+  color: var(--dataset-accent);
+  text-decoration: none;
+}
+.resultgroup__more:hover { text-decoration: underline; }
+
+.searchnote--cross { margin-top: 1.25rem; }
+
+/* Group headings inside the live-search modal. */
+.search-modal__group {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  margin: 1rem 0 .35rem;
+  padding-bottom: .25rem;
+  border-bottom: 1px solid var(--dataset-accent);
+}
+.search-modal__group:first-child { margin-top: 0; }
+.search-modal__groupname {
+  font-size: .72rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--dataset-accent);
+  font-weight: 600;
+}
+.search-modal__groupcount {
+  margin-left: auto;
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* --- admin: per-archive import target ----------------------------------- */
+
+.admin-dstabs .nav-link {
+  --bs-nav-pills-link-active-bg: var(--dataset-accent);
+  font-size: .875rem;
+  color: var(--muted);
+}
+.admin-dstabs .nav-link:hover { color: var(--ink); }
+.admin-dstabs .nav-link.active { color: #fff; }

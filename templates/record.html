@@ -1,15 +1,16 @@
 {% extends "base.html" %}
-{% from "_song_fields.html" import song_fields %}
-{% block title %}{{ song.title or 'Εγγραφή' }} — Δισκογραφικό Αρχείο{% endblock %}
+{% from "_record_fields.html" import record_fields %}
+{% set headline = record[dataset.result_title] %}
+{% block title %}{{ headline or 'Εγγραφή' }} — {{ dataset.title }}{% endblock %}
 
 {% block content %}
 <main class="wrap wrap--record">
 
   <form class="card record{% if edit %} is-editing{% endif %}" method="post"
-        action="{{ url_for('main.record_save', song_id=song.id) }}">
+        action="{{ url_for('main.record_save', dataset=dataset, rec_id=record.id) }}">
 
     <div class="card-header record__head">
-      <h1 class="record__heading h5 mb-0">Στοιχεία τραγουδιού</h1>
+      <h1 class="record__heading h5 mb-0">{{ dataset.record_heading }}</h1>
       <label class="switch">
         <input type="checkbox" class="switch__input" id="editToggle" {{ 'checked' if edit }}>
         <span class="switch__track"><span class="switch__thumb"></span></span>
@@ -18,45 +19,45 @@
     </div>
 
     <div class="card-body record__grid">
-      {{ song_fields(song) }}
+      {{ record_fields(dataset, record) }}
     </div>
 
     <div class="card-footer record__foot">
       <nav class="pager" aria-label="Πλοήγηση εγγραφών">
         {% if prev_id %}
-        <a class="pager__btn" href="{{ url_for('main.record', song_id=prev_id) }}" aria-label="Προηγούμενο">‹</a>
+        <a class="pager__btn" href="{{ url_for('main.record', dataset=dataset, rec_id=prev_id) }}" aria-label="Προηγούμενο">‹</a>
         {% else %}
         <span class="pager__btn is-disabled" aria-hidden="true">‹</span>
         {% endif %}
         <span class="pager__jump">
           <input type="number" class="pager__input" name="id" form="gotoform"
-                 value="{{ song.id }}" min="1" max="{{ total }}" step="1"
+                 value="{{ record.id }}" min="1" step="1"
                  aria-label="Μετάβαση σε εγγραφή">
-          <span class="pager__total">/ {{ total|gr }}</span>
+          <span class="pager__total">{{ position|gr }} / {{ total|gr }}</span>
         </span>
         {% if next_id %}
-        <a class="pager__btn" href="{{ url_for('main.record', song_id=next_id) }}" aria-label="Επόμενο">›</a>
+        <a class="pager__btn" href="{{ url_for('main.record', dataset=dataset, rec_id=next_id) }}" aria-label="Επόμενο">›</a>
         {% else %}
         <span class="pager__btn is-disabled" aria-hidden="true">›</span>
         {% endif %}
       </nav>
 
       <p class="record__meta">
-        Καταχωρήθηκε {{ song.created.strftime('%d/%m/%Y') }}
-        · Ενημερώθηκε {{ song.updated.strftime('%d/%m/%Y %H:%M') }}
+        Καταχωρήθηκε {{ record.created.strftime('%d/%m/%Y') }}
+        · Ενημερώθηκε {{ record.updated.strftime('%d/%m/%Y %H:%M') }}
       </p>
 
       <div class="record__actions">
         <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal"
                 data-bs-target="#deleteModal">Διαγραφή</button>
-        <a class="btn btn-outline-secondary" href="{{ url_for('main.record', song_id=song.id) }}">Ακύρωση</a>
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.record', dataset=dataset, rec_id=record.id) }}">Ακύρωση</a>
         <button type="submit" class="btn btn-primary">Αποθήκευση</button>
       </div>
     </div>
   </form>
 
   <!-- Standalone target for the pager jump box (can't nest a form in the record form). -->
-  <form id="gotoform" action="{{ url_for('main.goto') }}" method="get" hidden></form>
+  <form id="gotoform" action="{{ url_for('main.goto', dataset=dataset) }}" method="get" hidden></form>
 </main>
 
 <!-- Delete confirmation -->
@@ -64,16 +65,16 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 class="modal-title h5" id="deleteModalLabel">Διαγραφή τραγουδιού</h2>
+        <h2 class="modal-title h5" id="deleteModalLabel">Διαγραφή εγγραφής</h2>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Κλείσιμο"></button>
       </div>
       <div class="modal-body">
-        Σίγουρα θέλετε να διαγράψετε «{{ song.title or 'αυτή την εγγραφή' }}»;
+        Σίγουρα θέλετε να διαγράψετε «{{ headline or dataset.delete_noun }}»;
         Η ενέργεια δεν μπορεί να αναιρεθεί.
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Ακύρωση</button>
-        <form method="post" action="{{ url_for('main.song_delete', song_id=song.id) }}" class="m-0">
+        <form method="post" action="{{ url_for('main.record_delete', dataset=dataset, rec_id=record.id) }}" class="m-0">
           <button type="submit" class="btn btn-danger">Διαγραφή</button>
         </form>
       </div>

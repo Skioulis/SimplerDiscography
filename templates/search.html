@@ -1,34 +1,58 @@
 {% extends "base.html" %}
-{% block title %}{% if q %}Αναζήτηση «{{ q }}»{% else %}Αναζήτηση{% endif %} — Δισκογραφικό Αρχείο{% endblock %}
+{% block title %}{% if q %}Αναζήτηση «{{ q }}»{% else %}Αναζήτηση{% endif %} — {% if cross %}Όλα τα αρχεία{% else %}{{ dataset.title }}{% endif %}{% endblock %}
+
+{% macro result_item(r) %}
+{% set meta = r.meta | reject('in', ('', '-')) | list %}
+<li class="result">
+  <a class="result__link" href="{{ r.url }}">
+    <span class="result__title">{{ r.title or '—' }}</span>
+    <span class="result__meta">{{ meta | join(' · ') }}</span>
+  </a>
+</li>
+{% endmacro %}
 
 {% block content %}
 <main class="wrap wrap--search">
   <header class="searchhead">
-    <p class="eyebrow">Αναζήτηση</p>
+    <p class="eyebrow">Αναζήτηση{% if not cross %} · {{ dataset.title }}{% else %} · Όλα τα αρχεία{% endif %}</p>
     {% if q %}
       <h1 class="searchhead__title">«{{ q }}»</h1>
-      <p class="searchhead__count">{{ total|gr }} αποτελέσματα{% for v, l in field_options if v == field %} · στο πεδίο «{{ l }}»{% endfor %}</p>
+      <p class="searchhead__count">
+        {{ total|gr }} αποτελέσματα{% for v, l in field_options if v == field and not cross %} · στο πεδίο «{{ l }}»{% endfor %}
+      </p>
     {% else %}
       <h1 class="searchhead__title">Αναζήτηση στο αρχείο</h1>
     {% endif %}
   </header>
 
-  {% if q and results %}
-    <ol class="results">
-      {% for r in results %}
-      {% set composer = r.composer if r.composer not in ('', '-') else '' %}
-      {% set lyricist = r.lyricist if r.lyricist not in ('', '-') else '' %}
-      <li class="result">
-        <a class="result__link" href="{{ url_for('main.record', song_id=r.id) }}">
-          <span class="result__title">{{ r.title or '—' }}</span>
-          <span class="result__meta">
-            {%- if composer %}{{ composer }}{% endif -%}
-            {%- if composer and lyricist %} · {% endif -%}
-            {%- if lyricist %}{{ lyricist }}{% endif -%}
-          </span>
+  {% if not q %}
+    <p class="searchnote">Πληκτρολογήστε έναν όρο στην μπάρα αναζήτησης.</p>
+
+  {% elif cross %}
+    {% if groups %}
+      {% for g in groups %}
+      <section class="resultgroup {{ g.theme }}">
+        <header class="resultgroup__head">
+          <h2 class="resultgroup__title">{{ g.title }}</h2>
+          <span class="resultgroup__count">{{ g.total|gr }}</span>
+        </header>
+        <ol class="results">
+          {% for r in g.results %}{{ result_item(r) }}{% endfor %}
+        </ol>
+        {% if g.total > g.results|length %}
+        <a class="resultgroup__more" href="{{ g.more_url }}">
+          Όλα τα {{ g.total|gr }} αποτελέσματα στο «{{ g.title }}» →
         </a>
-      </li>
+        {% endif %}
+      </section>
       {% endfor %}
+    {% else %}
+      <p class="searchnote">Δεν βρέθηκαν αποτελέσματα για «{{ q }}» σε κανένα αρχείο.</p>
+    {% endif %}
+
+  {% elif results %}
+    <ol class="results">
+      {% for r in results %}{{ result_item(r) }}{% endfor %}
     </ol>
 
     {% set first = (page - 1) * page_size + 1 %}
@@ -42,7 +66,7 @@
           {% if page <= 1 %}
           <span class="page-link" aria-hidden="true">‹</span>
           {% else %}
-          <a class="page-link" href="{{ url_for('main.search', q=q, field=field, page=page-1) }}" aria-label="Προηγούμενη">‹</a>
+          <a class="page-link" href="{{ url_for('main.search', q=q, field=field, ds=dataset.key, page=page-1) }}" aria-label="Προηγούμενη">‹</a>
           {% endif %}
         </li>
         {% for p in page_items %}
@@ -50,7 +74,7 @@
           <li class="page-item disabled"><span class="page-link">…</span></li>
           {% else %}
           <li class="page-item {{ 'active' if p == page }}">
-            <a class="page-link" href="{{ url_for('main.search', q=q, field=field, page=p) }}">{{ p|gr }}</a>
+            <a class="page-link" href="{{ url_for('main.search', q=q, field=field, ds=dataset.key, page=p) }}">{{ p|gr }}</a>
           </li>
           {% endif %}
         {% endfor %}
@@ -58,16 +82,22 @@
           {% if page >= total_pages %}
           <span class="page-link" aria-hidden="true">›</span>
           {% else %}
-          <a class="page-link" href="{{ url_for('main.search', q=q, field=field, page=page+1) }}" aria-label="Επόμενη">›</a>
+          <a class="page-link" href="{{ url_for('main.search', q=q, field=field, ds=dataset.key, page=page+1) }}" aria-label="Επόμενη">›</a>
           {% endif %}
         </li>
       </ul>
     </nav>
     {% endif %}
-  {% elif q %}
-    <p class="searchnote">Δεν βρέθηκαν αποτελέσματα για «{{ q }}».</p>
+
+    <p class="searchnote searchnote--cross">
+      <a href="{{ url_for('main.search', q=q, scope='all') }}">Αναζήτηση «{{ q }}» σε όλα τα αρχεία →</a>
+    </p>
+
   {% else %}
-    <p class="searchnote">Πληκτρολογήστε έναν όρο στην μπάρα αναζήτησης.</p>
+    <p class="searchnote">Δεν βρέθηκαν αποτελέσματα για «{{ q }}» στο «{{ dataset.title }}».</p>
+    <p class="searchnote searchnote--cross">
+      <a href="{{ url_for('main.search', q=q, scope='all') }}">Δοκιμάστε σε όλα τα αρχεία →</a>
+    </p>
   {% endif %}
 </main>
 {% endblock %}

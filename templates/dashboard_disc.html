@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Δισκογραφικό Αρχείο — Επισκόπηση{% endblock %}
+{% block title %}{{ dataset.title }} — Επισκόπηση{% endblock %}
 
 {% block content %}
 {% set dmax = (stats.decades | map(attribute='count') | max) or 1 %}
-{% set cmax = (stats.top_composers | map(attribute='count') | max) or 1 %}
-{% set lmax = (stats.top_lyricists | map(attribute='count') | max) or 1 %}
-{% set fmax = (stats.formats | map(attribute='count') | max) or 1 %}
+{% set comax = (stats.top_companies | map(attribute='count') | max) or 1 %}
+{% set gmax = (stats.top_genres | map(attribute='count') | max) or 1 %}
+{% set rmax = (stats.top_rhythms | map(attribute='count') | max) or 1 %}
 
 <main class="wrap">
 
@@ -13,38 +13,38 @@
     <div class="col-12 col-md-auto d-flex justify-content-center justify-content-md-start">
       <div class="masthead__disc">
         <svg class="disc" viewBox="0 0 240 240" role="img"
-             aria-label="{{ stats.total|gr }} τραγούδια στο αρχείο">
+             aria-label="{{ stats.total|gr }} εγγραφές στο αρχείο">
           <circle cx="120" cy="120" r="118" fill="#1c140f"/>
           <circle cx="120" cy="120" r="118" fill="none" stroke="#b1802f" stroke-opacity=".35" stroke-width="1.5"/>
           {% for r in range(72, 116, 5) %}
           <circle cx="120" cy="120" r="{{ r }}" fill="none" stroke="#e9dec7" stroke-opacity=".06"/>
           {% endfor %}
-          <circle cx="120" cy="120" r="66" fill="#8a2b23"/>
+          <circle cx="120" cy="120" r="66" fill="currentColor"/>
           <circle cx="120" cy="120" r="66" fill="none" stroke="#b1802f" stroke-width="2.5"/>
           <circle cx="120" cy="120" r="55" fill="none" stroke="#f2ede0" stroke-opacity=".22"/>
         </svg>
         <div class="disc__label">
           <span class="disc__value">{{ stats.total|gr }}</span>
-          <span class="disc__unit">τραγούδια</span>
+          <span class="disc__unit">εγγραφές</span>
         </div>
       </div>
     </div>
 
     <div class="col-12 col-md masthead__intro text-center text-md-start">
-      <p class="eyebrow">Δισκογραφικό Αρχείο</p>
-      <h1 class="masthead__title">Η συλλογή με μια ματιά</h1>
+      <p class="eyebrow">{{ dataset.title }}</p>
+      <h1 class="masthead__title">Το αρχείο με μια ματιά</h1>
       <p class="masthead__desc">
-        Συνθέτες, στιχουργοί, στίχοι και δισκογραφικά στοιχεία —
-        από τα 78άρια ως σήμερα.
+        Εταιρείες, αριθμοί δίσκων, δημιουργοί, είδη και ρυθμοί
+        από τη συλλογή ΜΑΝΙΑΤΗ.
       </p>
       <dl class="kpis">
         <div class="kpi">
-          <dd class="kpi__num">{{ stats.composers|gr }}</dd>
-          <dt class="kpi__label">Συνθέτες</dt>
+          <dd class="kpi__num">{{ stats.companies|gr }}</dd>
+          <dt class="kpi__label">Εταιρείες</dt>
         </div>
         <div class="kpi">
-          <dd class="kpi__num">{{ stats.lyricists|gr }}</dd>
-          <dt class="kpi__label">Στιχουργοί</dt>
+          <dd class="kpi__num">{{ stats.discs|gr }}</dd>
+          <dt class="kpi__label">Αριθμοί δίσκων</dt>
         </div>
         <div class="kpi">
           <dd class="kpi__num">{{ stats.period }}</dd>
@@ -59,7 +59,7 @@
       <p class="eyebrow">Χρονολόγηση</p>
       <h2 class="card__title">Ηχογραφήσεις ανά δεκαετία</h2>
       <p class="card__sub">
-        Κατά προσέγγιση, με βάση την παλαιότερη χρονολογία που αναφέρεται.
+        Από το πεδίο «{{ dataset.label('year') }}».
         {{ stats.dated|gr }} εγγραφές με χρονολογία, {{ stats.undated|gr }} χωρίς.
       </p>
     </div>
@@ -80,46 +80,66 @@
     <div class="col-12 col-md-6">
       <section class="card h-100 accent-oxblood">
         <div class="card__head">
-          <p class="eyebrow">Δημιουργοί</p>
-          <h2 class="card__title">Συνθέτες</h2>
+          <p class="eyebrow">Δισκογραφία</p>
+          <h2 class="card__title">{{ dataset.label('company') }}</h2>
           <p class="card__sub">Με τις περισσότερες εγγραφές</p>
         </div>
         <ol class="rank">
-          {% for c in stats.top_composers %}
+          {% for c in stats.top_companies %}
           <li class="rank__row">
             <span class="rank__n">{{ '%02d'|format(loop.index) }}</span>
             <span class="rank__body">
               <span class="rank__name">{{ c.name }}</span>
-              <span class="rank__bar"><i style="width: {{ (c.count / cmax * 100)|round(2) }}%"></i></span>
+              <span class="rank__bar"><i style="width: {{ (c.count / comax * 100)|round(2) }}%"></i></span>
             </span>
             <span class="rank__count">{{ c.count|gr }}</span>
           </li>
           {% endfor %}
         </ol>
-        <p class="card__note">Εξαιρούνται «παραδοσιακό» και άγνωστοι.</p>
       </section>
     </div>
 
     <div class="col-12 col-md-6">
       <section class="card h-100 accent-brass">
         <div class="card__head">
-          <p class="eyebrow">Δημιουργοί</p>
-          <h2 class="card__title">Στιχουργοί</h2>
+          <p class="eyebrow">Ρεπερτόριο</p>
+          <h2 class="card__title">{{ dataset.label('genre') }}</h2>
           <p class="card__sub">Με τις περισσότερες εγγραφές</p>
         </div>
         <ol class="rank">
-          {% for c in stats.top_lyricists %}
+          {% for c in stats.top_genres %}
           <li class="rank__row">
             <span class="rank__n">{{ '%02d'|format(loop.index) }}</span>
             <span class="rank__body">
               <span class="rank__name">{{ c.name }}</span>
-              <span class="rank__bar"><i style="width: {{ (c.count / lmax * 100)|round(2) }}%"></i></span>
+              <span class="rank__bar"><i style="width: {{ (c.count / gmax * 100)|round(2) }}%"></i></span>
             </span>
             <span class="rank__count">{{ c.count|gr }}</span>
           </li>
           {% endfor %}
         </ol>
-        <p class="card__note">Εξαιρούνται «παραδοσιακό» και άγνωστοι.</p>
+      </section>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <section class="card h-100 accent-brass">
+        <div class="card__head">
+          <p class="eyebrow">Ρεπερτόριο</p>
+          <h2 class="card__title">{{ dataset.label('rhythm') }}</h2>
+          <p class="card__sub">Με τις περισσότερες εγγραφές</p>
+        </div>
+        <ol class="rank">
+          {% for c in stats.top_rhythms %}
+          <li class="rank__row">
+            <span class="rank__n">{{ '%02d'|format(loop.index) }}</span>
+            <span class="rank__body">
+              <span class="rank__name">{{ c.name }}</span>
+              <span class="rank__bar"><i style="width: {{ (c.count / rmax * 100)|round(2) }}%"></i></span>
+            </span>
+            <span class="rank__count">{{ c.count|gr }}</span>
+          </li>
+          {% endfor %}
+        </ol>
       </section>
     </div>
 
@@ -143,32 +163,11 @@
         </ul>
       </section>
     </div>
-
-    <div class="col-12 col-md-6">
-      <section class="card h-100 accent-brass">
-        <div class="card__head">
-          <p class="eyebrow">Μέσο</p>
-          <h2 class="card__title">Μορφές δίσκων</h2>
-          <p class="card__sub">Εγγραφές που αναφέρουν κάθε μορφή</p>
-        </div>
-        <ul class="chart">
-          {% for f in stats.formats %}
-          <li class="chart__row">
-            <span class="chart__key">{{ f.tag }}</span>
-            <span class="chart__track">
-              <i class="chart__fill" style="width: {{ (f.count / fmax * 100)|round(2) }}%"></i>
-            </span>
-            <span class="chart__val">{{ f.count|gr }}</span>
-          </li>
-          {% endfor %}
-        </ul>
-      </section>
-    </div>
   </div>
 
   <footer class="foot">
-    Δεδομένα από το αρχείο «Τραγούδια». Χρονολογίες και μορφές εξάγονται
-    αυτόματα από τα πεδία «Αρχείο» και «Σημειώσεις».
+    Δεδομένα από το αρχείο «{{ dataset.title }}». Οι χρονολογίες εξάγονται
+    αυτόματα από το πεδίο «{{ dataset.label('year') }}», που είναι ελεύθερο κείμενο.
   </footer>
 
 </main>

@@ -1,0 +1,34 @@
+{# Generic record field grid, driven by dataset.layout.
+
+   Used by the record view/edit and the add-new form for every archive, so
+   field order, labels and widths live in the registry (datasets.py) rather
+   than in a template per archive. #}
+
+{% macro textfield(name, label, value, readonly=True) %}
+<label class="form-label field-label" for="f-{{ name }}">{{ label }}</label>
+<input class="form-control record-field" id="f-{{ name }}" name="{{ name }}"
+       value="{{ value or '' }}" {% if readonly %}readonly{% endif %} autocomplete="off">
+{% endmacro %}
+
+{% macro areafield(name, label, value, rows, readonly=True) %}
+<label class="form-label field-label" for="f-{{ name }}">{{ label }}</label>
+<textarea class="form-control record-field" id="f-{{ name }}" name="{{ name }}"
+          rows="{{ rows }}" {% if readonly %}readonly{% endif %}>{{ value or '' }}</textarea>
+{% endmacro %}
+
+{% macro record_fields(dataset, record, editable=False) %}
+{% set ro = not editable %}
+{% for row in dataset.layout %}
+<div class="row g-3{% if not loop.first %} mt-1{% endif %}">
+  {% for f in row %}
+  <div class="col-md-{{ f.width }}">
+    {% if f.widget == 'textarea' %}
+      {{ areafield(f.attr, dataset.label(f.attr), record[f.attr], f.rows, ro) }}
+    {% else %}
+      {{ textfield(f.attr, dataset.label(f.attr), record[f.attr], ro) }}
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+{% endmacro %}
