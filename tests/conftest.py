@@ -38,3 +38,31 @@ def client(app):
 @pytest.fixture
 def db_path(app):
     return app.config["DB_PATH"]
+
+
+ADMIN_PASSWORD = "test-admin-password"
+
+
+@pytest.fixture
+def admin_app(tmp_path):
+    """An app with the admin area enabled (it is disabled without a password)."""
+    dbfile = tmp_path / "admin.db"
+    application = create_app({
+        "SQLALCHEMY_DATABASE_URI": f"sqlite:///{dbfile}",
+        "DB_PATH": str(dbfile),
+        "ADMIN_PASSWORD": ADMIN_PASSWORD,
+        "SECRET_KEY": "test-key",
+        "TESTING": True,
+    })
+    with application.app_context():
+        upgrade()
+        yield application
+        db.session.remove()
+
+
+@pytest.fixture
+def admin_client(admin_app):
+    """A client that has already logged into /admin."""
+    client = admin_app.test_client()
+    client.post("/admin/login", data={"password": ADMIN_PASSWORD})
+    return client

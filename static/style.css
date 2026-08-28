@@ -1004,3 +1004,67 @@ body.theme-bios { --accent: var(--dataset-accent); }
 }
 .admin-dstabs .nav-link:hover { color: var(--ink); }
 .admin-dstabs .nav-link.active { color: #fff; }
+
+/* --- admin: restore whole database -------------------------------------- */
+
+.restore-now {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+  padding: .85rem 1rem;
+  margin-bottom: 1rem;
+}
+.restore-now__label {
+  font-size: .7rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 .4rem;
+}
+.restore-now__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: .15rem 1.25rem;
+}
+.restore-now__list li {
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+  font-size: .9rem;
+}
+.restore-now__list b { font-variant-numeric: tabular-nums; }
+.restore-now__schema {
+  margin: .5rem 0 0;
+  font-size: .78rem;
+  color: var(--muted);
+}
+
+.restore-diff { font-variant-numeric: tabular-nums; }
+.restore-diff__arrow { color: var(--muted); }
+.restore-diff tr.is-changed td { font-weight: 600; }
+.restore-diff tr.is-kept td { color: var(--muted); font-weight: 400; }
+.restore-diff__note {
+  display: inline-block;
+  font-size: .72rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.restore-backups {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+.restore-backups li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: .82rem;
+}
+.restore-backups span { color: var(--muted); font-variant-numeric: tabular-nums; }

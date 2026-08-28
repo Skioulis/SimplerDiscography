@@ -8,6 +8,9 @@ avoid circular imports.
 from __future__ import annotations
 
 import csv
+import datetime
+import os
+import shutil
 import sqlite3
 
 from sqlalchemy import func, insert, select
@@ -182,3 +185,130 @@ def replace_from_db(src_path: str, dest_path: str) -> tuple[dict[str, int], list
         except sqlite3.Error:
             pass
         con.close()
+
+
+# --------------------------------------------------------------------------- #
+# Restore support: inspect an upload before applying it, and snapshot first
+# --------------------------------------------------------------------------- #
+
+#: How many automatic pre-restore snapshots to keep on the volume.
+KEEP_BACKUPS = 3
+
+#: Prefix for those snapshots, so they can be found and pruned again.
+BACKUP_PREFIX = "backup-before-restore-"
+
+
+def schema_version(path: str) -> str | None:
+    """The Alembic revision a SQLite file is stamped with, if any."""
+    con = sqlite3.connect(path)
+    try:
+        row = con.execute("SELECT version_num FROM alembic_version").fetchone()
+        return row[0] if row else None
+    except sqlite3.DatabaseError:
+        return None
+    finally:
+        con.close()
+
+
+def inspect_db(path: str) -> dict:
+    """Summarize what an uploaded .db holds, without changing anything.
+
+    Returns the row count per archive (``None`` when the archive is absent from
+    the file) plus its schema version, so the admin can be shown what a restore
+    would do before it happens.
+    """
+    con = sqlite3.connect(path)
+    try:
+        present = {r[0] for r in con.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        counts: dict[str, int | None] = {}
+        for dataset in DATASET_LIST:
+            table = dataset.model.__tablename__
+            if table in present:
+                (counts[table],) = con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+            else:
+                counts[table] = None
+    finally:
+        con.close()
+    return {"counts": counts, "schema_version": schema_version(path)}
+
+
+def live_counts() -> dict[str, int]:
+    """Current row count per archive, for comparison against an upload."""
+    return {d.model.__tablename__: record_count(d) for d in DATASET_LIST}
+
+
+def backup_database(db_path: str, keep: int = KEEP_BACKUPS) -> str:
+    """Snapshot the live database beside itself, pruning older snapshots.
+
+    Uses SQLite's own backup API rather than a file copy, so the snapshot is
+    consistent even if another worker writes mid-copy. Returns the new path.
+
+    Raises OSError if the volume hasn't room for another copy — better to refuse
+    the restore than to half-write a snapshot and then overwrite the original.
+    """
+    directory = os.path.dirname(os.path.abspath(db_path)) or "."
+    needed = os.path.getsize(db_path)
+    free = shutil.disk_usage(directory).free
+    if free < needed * 1.1:
+        raise OSError(
+            f"Δεν υπάρχει αρκετός χώρος για αντίγραφο ασφαλείας: "
+            f"απαιτούνται ~{needed // (1024 * 1024)}MB, "
+            f"διαθέσιμα {free // (1024 * 1024)}MB."
+        )
+
+    # Second resolution is readable but collides when two restores land in the
+    # same second, which would silently overwrite the earlier snapshot; fall
+    # back to a numbered suffix rather than lose one.
+    stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    dest = os.path.join(directory, f"{BACKUP_PREFIX}{stamp}.db")
+    suffix = 2
+    while os.path.exists(dest):
+        dest = os.path.join(directory, f"{BACKUP_PREFIX}{stamp}-{suffix}.db")
+        suffix += 1
+
+    src = sqlite3.connect(db_path)
+    try:
+        dst = sqlite3.connect(dest)
+        try:
+            src.backup(dst)
+        finally:
+            dst.close()
+    finally:
+        src.close()
+
+    _prune_backups(directory, keep)
+    return dest
+
+
+def _prune_backups(directory: str, keep: int) -> None:
+    """Delete all but the ``keep`` most recent automatic snapshots."""
+    for stale in _snapshots(directory)[keep:]:
+        try:
+            os.remove(os.path.join(directory, stale))
+        except OSError:
+            pass               # a snapshot we can't remove is not worth failing over
+
+
+def _snapshots(directory: str) -> list[str]:
+    """Automatic snapshot filenames in `directory`, newest first.
+
+    Ordered by modification time rather than by name: two snapshots taken in the
+    same second differ only by a numbered suffix, which does not sort reliably.
+    """
+    names = [f for f in os.listdir(directory)
+             if f.startswith(BACKUP_PREFIX) and f.endswith(".db")]
+    return sorted(names,
+                  key=lambda f: os.path.getmtime(os.path.join(directory, f)),
+                  reverse=True)
+
+
+def list_backups(db_path: str) -> list[dict]:
+    """The automatic snapshots currently on the volume, newest first."""
+    directory = os.path.dirname(os.path.abspath(db_path)) or "."
+    return [
+        {"name": name,
+         "size_mb": round(os.path.getsize(os.path.join(directory, name))
+                          / (1024 * 1024), 1)}
+        for name in _snapshots(directory)
+    ]

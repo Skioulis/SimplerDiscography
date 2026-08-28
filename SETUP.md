@@ -48,7 +48,7 @@ ADMIN_PASSWORD=choose-an-admin-password
 
 (Generate a secret key with e.g. `python -c "import secrets; print(secrets.token_hex(32))"`.)
 
-`ADMIN_PASSWORD` gates the **/admin** area (CSV import + database download). If it's
+`ADMIN_PASSWORD` gates the **/admin** area (import, download, database restore). If it's
 left unset, the admin area is disabled (returns 503).
 
 ### 2. Build and start
@@ -87,7 +87,8 @@ Set via environment variables (in `.env` or the `environment:` block of
 | Variable | Default (Docker) | Purpose |
 |---|---|---|
 | `SECRET_KEY` | `please-change-me` | Signs session cookies. **Set this in production.** |
-| `ADMIN_PASSWORD` | *(unset → admin disabled)* | Password for the **/admin** area (CSV import + DB download) |
+| `ADMIN_PASSWORD` | *(unset → admin disabled)* | Password for the **/admin** area (import, download, restore) |
+| `RESTORE_BACKUPS` | `3` | Automatic pre-restore snapshots to keep beside the database. Each is a full copy; `0` disables them. |
 | `DISCOGRAPHY_DB` | `/data/db/discography.db` | Path to the SQLite database file |
 | `MEDIA_DIR` | `/data/media` | Directory for audio/image files |
 | `WEB_CONCURRENCY` | `3` | Number of gunicorn workers |
@@ -135,15 +136,37 @@ To restore, stop the app and copy a `.db` file back into the `db_data` volume.
 
 ## Admin area
 
-Visit **`/admin`** and log in with `ADMIN_PASSWORD`. It has two pages:
+Visit **`/admin`** and log in with `ADMIN_PASSWORD`. It has three pages:
 
-- **Εισαγωγή (Import)** — upload either a **CSV** (same structure: columns
-  `ΤΙΤΛΟΣ; ΣΥΝΘΕΤΗΣ; ΣΤΙΧΟΥΡΓΟΣ; ΣΤΙΧΟΙ; ΑΡΧΕΙΟ; ΒΙΒΛΙΟΓΡΑΦΙΑ; ΣΗΜΕΙΩΣΕΙΣ`,
-  `;`-delimited, UTF-8) or a **`.db` file** previously downloaded from *Λήψη βάσης*.
-  The type is auto-detected. **This replaces all existing data** — you confirm in a
-  dialog, watch an upload progress bar, and the import is transactional (a malformed
-  or incompatible file leaves the database untouched).
+- **Εισαγωγή CSV (Import)** — replace **one archive** from a `;`-delimited UTF-8
+  CSV. Pick the target archive first; the page then lists the exact columns that
+  archive expects. Only that archive is touched. Transactional: a malformed file
+  leaves the database untouched. A `.db` upload is refused here and points you at
+  *Επαναφορά βάσης*, because replacing one archive and restoring a whole database
+  are different operations.
 - **Λήψη βάσης (Download)** — download a copy of the SQLite database to your PC.
+  This is the file the restore page accepts.
+- **Επαναφορά βάσης (Restore)** — restore **every archive** from an uploaded
+  `.db`. Two steps:
+  1. The upload is staged and inspected, then you get a comparison — e.g.
+     *Τραγούδια 56.171 → 53.999* — per archive, plus a warning if the file's
+     schema version differs from the live one. Nothing has changed yet.
+  2. On confirmation the live database is snapshotted beside itself
+     (`backup-before-restore-<timestamp>.db`), then the rows are copied in inside
+     one transaction. Archives absent from the upload are **kept**, not emptied,
+     and named in the result.
+
+  Rows are copied into the running database rather than the file being swapped,
+  so it is safe with multiple gunicorn workers and the live schema and migration
+  version are preserved. That also means it restores the archives' **rows**, not
+  the schema: a backup from a newer schema version cannot bring that schema with
+  it, and only columns common to both copies are carried over.
+
+  > **Disk.** Each snapshot is a full copy. On a ~200MB archive the default of
+  > three snapshots costs ~600MB on the volume, on top of the database itself.
+  > Tune with `RESTORE_BACKUPS` (`0` disables snapshots entirely — then take your
+  > own from *Λήψη βάσης* first). The restore refuses to run if the volume hasn't
+  > room for a snapshot, rather than overwriting with no way back.
 
 If `ADMIN_PASSWORD` is not set, `/admin` returns 503 (feature disabled).
 

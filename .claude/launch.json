@@ -4,15 +4,49 @@
     {
       "name": "discography",
       "runtimeExecutable": ".venv/bin/flask",
-      "runtimeArgs": ["--app", "app", "run", "--host", "0.0.0.0", "--port", "5000"],
+      "runtimeArgs": [
+        "--app",
+        "app",
+        "run",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "5000"
+      ],
       "port": 5000
     },
     {
       "name": "discography-preview",
       "runtimeExecutable": ".venv/bin/flask",
-      "runtimeArgs": ["--app", "app", "run", "--port", "5057"],
+      "runtimeArgs": [
+        "--app",
+        "app",
+        "run",
+        "--port",
+        "5057"
+      ],
       "port": 5057,
-      "env": { "ADMIN_PASSWORD": "preview", "SECRET_KEY": "preview-key" }
+      "env": {
+        "ADMIN_PASSWORD": "preview",
+        "SECRET_KEY": "preview-key"
+      }
+    },
+    {
+      "name": "discography-sandbox",
+      "runtimeExecutable": ".venv/bin/flask",
+      "runtimeArgs": [
+        "--app",
+        "app",
+        "run",
+        "--port",
+        "5058"
+      ],
+      "port": 5058,
+      "env": {
+        "ADMIN_PASSWORD": "sandbox",
+        "SECRET_KEY": "sandbox-key",
+        "DISCOGRAPHY_DB": "/tmp/claude-1000/-home-skioulis-PycharmProjects-SimpleDiscography/f9563406-e65e-4713-90af-41ddd8b7d9a4/scratchpad/sandbox/discography.db"
+      }
     }
   ]
 }

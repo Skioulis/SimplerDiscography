@@ -43,6 +43,10 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["DB_PATH"] = DB_PATH
     # Password gating the /admin area. Unset => admin is disabled (503).
     app.config["ADMIN_PASSWORD"] = os.environ.get("ADMIN_PASSWORD")
+    # How many automatic pre-restore snapshots to keep beside the database.
+    # Each is a full copy, so on a ~200MB archive three snapshots cost ~600MB of
+    # volume; lower this on a small disk, or set 0 to keep none.
+    app.config["RESTORE_BACKUPS"] = int(os.environ.get("RESTORE_BACKUPS", "3"))
     # Allow large uploads in the admin importer (CSV or a full .db restore).
     app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024 * 1024
     # Used to sign the session cookie (flash messages, admin login). Override in production.

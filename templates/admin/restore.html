@@ -1,0 +1,288 @@
+{% extends "admin/_layout.html" %}
+{% block title %}Διαχείριση — Επαναφορά βάσης{% endblock %}
+
+{% block admin_content %}
+<div class="card">
+  <div class="card-body p-4">
+    <h2 class="h5">Επαναφορά ολόκληρης της βάσης</h2>
+    <p class="text-muted mb-3">
+      Ανεβάστε ένα αρχείο <strong>.db</strong> — για παράδειγμα ένα αντίγραφο από
+      τη <a href="{{ url_for('main.admin_download') }}">Λήψη βάσης</a> — και όλα τα
+      αρχεία που περιέχει θα αντικαταστήσουν τα τρέχοντα.
+    </p>
+
+    <div class="restore-now">
+      <p class="restore-now__label">Τώρα στη βάση</p>
+      <ul class="restore-now__list">
+        {% for table, title in titles.items() %}
+        <li><span>{{ title }}</span><b>{{ current.get(table, 0)|gr }}</b></li>
+        {% endfor %}
+      </ul>
+      {% if schema %}<p class="restore-now__schema">Έκδοση σχήματος: <code>{{ schema }}</code></p>{% endif %}
+    </div>
+
+    {% if keep_backups %}
+    <div class="alert alert-info">
+      Πριν την επαναφορά κρατείται <strong>αυτόματο αντίγραφο ασφαλείας</strong>
+      της τρέχουσας βάσης στον διακομιστή. Θα δείτε πρώτα τι περιέχει το αρχείο
+      που ανεβάσατε και τι θα αλλάξει.
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+      Τα αυτόματα αντίγραφα ασφαλείας είναι <strong>απενεργοποιημένα</strong>
+      (<code>RESTORE_BACKUPS=0</code>). Κατεβάστε πρώτα ένα αντίγραφο από τη
+      <a href="{{ url_for('main.admin_download') }}">Λήψη βάσης</a>.
+    </div>
+    {% endif %}
+
+    <form id="restoreForm" method="post"
+          action="{{ url_for('main.admin_restore_inspect') }}"
+          enctype="multipart/form-data">
+      <div class="mb-3">
+        <label class="form-label" for="db">Αρχείο βάσης (.db)</label>
+        <input class="form-control" type="file" id="db" name="db"
+               accept=".db,.sqlite,.sqlite3,application/octet-stream" required>
+      </div>
+      <button class="btn btn-danger" type="submit">Έλεγχος αρχείου…</button>
+    </form>
+  </div>
+</div>
+
+{% if backups %}
+<div class="card mt-4">
+  <div class="card-body p-4">
+    <h2 class="h6">Αυτόματα αντίγραφα ασφαλείας στον διακομιστή</h2>
+    <p class="text-muted small mb-2">
+      Κρατούνται τα <strong>{{ keep_backups }}</strong> πιο πρόσφατα, δίπλα στη
+      βάση — συνολικά {{ (backups | sum(attribute='size_mb')) | round(1) }} MB.
+      Για επαναφορά από κάποιο από αυτά χρειάζεται πρόσβαση στον διακομιστή.
+    </p>
+    <ul class="restore-backups">
+      {% for b in backups %}
+      <li><code>{{ b.name }}</code><span>{{ b.size_mb }} MB</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<!-- Upload → review → apply → result -->
+<div class="modal fade" id="restoreModal" tabindex="-1" data-bs-backdrop="static"
+     data-bs-keyboard="false" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="restoreModalTitle">Έλεγχος αρχείου</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                aria-label="Κλείσιμο" id="restoreClose"></button>
+      </div>
+      <div class="modal-body">
+        <div data-state="progress">
+          <p id="restoreProgressLabel" class="mb-2">Μεταφόρτωση…</p>
+          <div class="progress" role="progressbar" aria-label="Πρόοδος"
+               aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" id="restoreProgressBar" style="width: 0%">0%</div>
+          </div>
+        </div>
+
+        <div data-state="review" hidden>
+          <p class="mb-2">Το αρχείο <span id="restoreFileName" class="fw-semibold"></span>
+            (<span id="restoreFileSize"></span>) περιέχει:</p>
+          <table class="table table-sm restore-diff">
+            <thead>
+              <tr><th>Αρχείο</th><th class="text-end">Τώρα</th><th></th>
+                  <th class="text-end">Μετά</th></tr>
+            </thead>
+            <tbody id="restoreDiffBody"></tbody>
+          </table>
+          <p id="restoreSchemaNote" class="small mb-2" hidden></p>
+          <p class="text-muted mb-0">
+            Θα κρατηθεί αυτόματο αντίγραφο ασφαλείας πρώτα. Η ενέργεια δεν
+            μπορεί να αναιρεθεί από την εφαρμογή.
+          </p>
+        </div>
+
+        <div data-state="applying" hidden>
+          <p class="mb-2">Δημιουργία αντιγράφου ασφαλείας και επαναφορά…</p>
+          <div class="progress" role="progressbar" aria-label="Πρόοδος">
+            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                 style="width: 100%"></div>
+          </div>
+        </div>
+
+        <div data-state="result" hidden>
+          <div class="alert mb-0" id="restoreResultAlert"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"
+                id="restoreCancel">Ακύρωση</button>
+        <button type="button" class="btn btn-danger" id="restoreConfirm" hidden>
+          Επαναφορά βάσης
+        </button>
+        <button type="button" class="btn btn-primary" id="restoreDone" hidden>Εντάξει</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var form = document.getElementById('restoreForm');
+    var fileInput = document.getElementById('db');
+    var modalEl = document.getElementById('restoreModal');
+    var modal = new bootstrap.Modal(modalEl);
+
+    var title = document.getElementById('restoreModalTitle');
+    var bar = document.getElementById('restoreProgressBar');
+    var progressLabel = document.getElementById('restoreProgressLabel');
+    var confirmBtn = document.getElementById('restoreConfirm');
+    var doneBtn = document.getElementById('restoreDone');
+    var cancelBtn = document.getElementById('restoreCancel');
+    var closeBtn = document.getElementById('restoreClose');
+    var resultAlert = document.getElementById('restoreResultAlert');
+    var diffBody = document.getElementById('restoreDiffBody');
+    var schemaNote = document.getElementById('restoreSchemaNote');
+    var fileName = document.getElementById('restoreFileName');
+    var fileSize = document.getElementById('restoreFileSize');
+    var states = modalEl.querySelectorAll('[data-state]');
+    var reloadAfter = false;
+
+    function show(state) {
+      states.forEach(function (el) { el.hidden = el.dataset.state !== state; });
+    }
+    function setBar(pct) {
+      bar.style.width = pct + '%';
+      bar.textContent = pct + '%';
+      bar.setAttribute('aria-valuenow', pct);
+    }
+    function gr(n) { return n.toLocaleString('el'); }
+    function esc(s) {
+      return (s || '').replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+
+    function finish(ok, message) {
+      title.textContent = ok ? 'Ολοκληρώθηκε' : 'Σφάλμα';
+      show('result');
+      resultAlert.className = 'alert mb-0 alert-' + (ok ? 'success' : 'danger');
+      resultAlert.textContent = message;
+      confirmBtn.hidden = true;
+      cancelBtn.hidden = true;
+      doneBtn.hidden = false;
+      closeBtn.disabled = false;
+      reloadAfter = ok;
+    }
+
+    // --- step 1: upload and inspect ----------------------------------------
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+
+      title.textContent = 'Έλεγχος αρχείου';
+      show('progress');
+      setBar(0);
+      progressLabel.textContent = 'Μεταφόρτωση…';
+      bar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+      confirmBtn.hidden = true;
+      doneBtn.hidden = true;
+      cancelBtn.hidden = false;
+      cancelBtn.disabled = false;
+      closeBtn.disabled = true;
+      modal.show();
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', form.action);
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+      xhr.upload.addEventListener('progress', function (ev) {
+        if (!ev.lengthComputable) return;
+        var pct = Math.round(ev.loaded / ev.total * 100);
+        setBar(pct);
+        if (pct >= 100) {
+          progressLabel.textContent = 'Έλεγχος περιεχομένου…';
+          bar.classList.add('progress-bar-striped', 'progress-bar-animated');
+        }
+      });
+      xhr.addEventListener('load', function () {
+        var d = {};
+        try { d = JSON.parse(xhr.responseText); } catch (err) {}
+        if (!d.ok) { finish(false, d.message || 'Ο έλεγχος απέτυχε.'); return; }
+        renderReview(d);
+      });
+      xhr.addEventListener('error', function () {
+        finish(false, 'Σφάλμα δικτύου κατά τη μεταφόρτωση.');
+      });
+      xhr.send(new FormData(form));
+    });
+
+    function renderReview(d) {
+      title.textContent = 'Επιβεβαίωση επαναφοράς';
+      fileName.textContent = '«' + d.filename + '»';
+      fileSize.textContent = d.size_mb + ' MB';
+
+      diffBody.innerHTML = '';
+      d.archives.forEach(function (a) {
+        var after = a.kept ? a.current : a.incoming;
+        var cls = a.kept ? 'is-kept' : (after === a.current ? '' : 'is-changed');
+        diffBody.insertAdjacentHTML('beforeend',
+          '<tr class="' + cls + '">'
+          + '<td>' + esc(a.title) + '</td>'
+          + '<td class="text-end">' + gr(a.current) + '</td>'
+          + '<td class="text-center restore-diff__arrow">→</td>'
+          + '<td class="text-end">' + gr(after)
+          + (a.kept ? ' <span class="restore-diff__note">δεν υπάρχει στο αρχείο,'
+                      + ' παραμένει</span>' : '')
+          + '</td></tr>');
+      });
+
+      if (!d.schema_matches) {
+        schemaNote.hidden = false;
+        schemaNote.className = 'small mb-2 text-danger';
+        schemaNote.textContent = 'Προσοχή: το αρχείο έχει έκδοση σχήματος '
+          + (d.schema || '—') + ' ενώ η βάση έχει ' + (d.live_schema || '—')
+          + '. Αντιγράφονται μόνο οι κοινές στήλες.';
+      } else {
+        schemaNote.hidden = true;
+      }
+
+      show('review');
+      confirmBtn.hidden = false;
+      closeBtn.disabled = false;
+    }
+
+    // --- step 2: apply ------------------------------------------------------
+    confirmBtn.addEventListener('click', function () {
+      title.textContent = 'Επαναφορά';
+      show('applying');
+      confirmBtn.hidden = true;
+      cancelBtn.disabled = true;
+      closeBtn.disabled = true;
+
+      fetch('{{ url_for("main.admin_restore_apply") }}', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      }).then(function (r) { return r.json(); })
+        .then(function (d) { finish(!!d.ok, d.message || 'Η επαναφορά ολοκληρώθηκε.'); })
+        .catch(function () { finish(false, 'Σφάλμα δικτύου κατά την επαναφορά.'); });
+    });
+
+    // Abandoning the dialog drops the staged upload from the server.
+    cancelBtn.addEventListener('click', discard);
+    closeBtn.addEventListener('click', discard);
+    function discard() {
+      fetch('{{ url_for("main.admin_restore_cancel") }}', {
+        method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      }).catch(function () {});
+    }
+
+    doneBtn.addEventListener('click', function () {
+      modal.hide();
+      if (reloadAfter) window.location.reload();
+    });
+  })();
+</script>
+{% endblock %}

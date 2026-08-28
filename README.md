@@ -45,6 +45,13 @@ archive and notes on the right.
   Enter) — clamps to the valid range so it never errors.
 - Shows *created* / *updated* timestamps.
 
+### 🛠 Admin (`/admin`, password-gated)
+- **Εισαγωγή CSV** — replace one archive from its CSV.
+- **Λήψη βάσης** — download the SQLite file.
+- **Επαναφορά βάσης** — restore every archive from an uploaded `.db`, with a
+  review screen showing the row-count change per archive and an automatic
+  snapshot of the current database taken first.
+
 ### 🔎 Search
 - **Live search modal** (opens from the navbar): results appear after **3
   characters**, with full keyboard navigation (↑/↓ to move, Enter to open).
