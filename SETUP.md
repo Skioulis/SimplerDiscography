@@ -4,9 +4,19 @@ Two ways to run SimpleDiscography: **Docker** (recommended for deployment) or a
 **local Python environment** (for development). See [README.md](README.md) for
 what the app does.
 
-> **Data note:** the app seeds itself from `files/Τραγούδια.csv`. That file must
-> be present in the project before building the image or running the local
-> importer.
+> **Data note:** the app seeds itself from the CSVs in `files/`, one per archive:
+>
+> | File | Archive |
+> |---|---|
+> | `Τραγούδια.csv` | Τραγούδια |
+> | `45άρια (ΜΑΝΙΑΤΗ).csv` | 45άρια |
+> | `78άρια (ΜΑΝΙΑΤΗ).csv` | 78άρια |
+> | `Βιογραφίες.csv` | Βιογραφίες |
+>
+> These are **not in git** — copy them into `files/` before building the image or
+> running the importer. Any that are missing simply leave their archive empty;
+> the startup log says which, and they can be uploaded later from
+> **/admin/import**.
 
 ---
 
@@ -155,8 +165,15 @@ pip install -r requirements.txt
 ### 2. Create the schema and load the data
 
 ```bash
-flask --app app db upgrade     # create tables + FTS index + triggers
-python import_csv.py           # import files/Τραγούδια.csv (~56k rows)
+flask --app app db upgrade     # create tables + FTS indexes + triggers
+python import_csv.py all       # import every CSV present in files/ (~119k rows)
+```
+
+`all` loads all four archives. To load just some of them, name them instead —
+`songs`, `45`, `78`, `bios`:
+
+```bash
+python import_csv.py 45 78 bios
 ```
 
 This creates `discography.db` in the project root. To point elsewhere, set
@@ -197,13 +214,23 @@ In Docker, `flask db upgrade` runs automatically on container start, so deployin
 a new image with new migrations applies them for you.
 
 ### Re-importing / reseeding
-`import_csv.py` is idempotent — it clears the `song` table and reloads it, then
-rebuilds the search index. Run it again any time the CSV changes:
+`import_csv.py` is idempotent per archive — it clears that archive's table,
+reloads it from its CSV, and rebuilds its search index. Other archives are left
+untouched. Run it any time a CSV changes:
 
 ```bash
-python import_csv.py                              # local
-docker compose exec web python import_csv.py      # inside the container
+python import_csv.py 45                              # local, one archive
+python import_csv.py all                             # local, everything
+docker compose exec web python import_csv.py 45      # inside the container
 ```
+
+> The archive must be named — `python import_csv.py` on its own prints the
+> available keys and exits. This is deliberate: an import discards any edits made
+> through the UI since that CSV was exported, so it is never applied to an
+> archive you did not ask for.
+
+The same thing is available without shell access from **/admin/import**, which
+has a selector for the target archive and also accepts a full `.db` restore.
 
 ---
 
@@ -214,7 +241,11 @@ docker compose exec web python import_csv.py      # inside the container
 - **"song table not found" when importing** — run `flask --app app db upgrade`
   first; the importer only loads data, it doesn't create the schema.
 - **Search returns nothing after a schema change** — the FTS triggers were likely
-  dropped by a batch migration; re-run the import (`python import_csv.py`) to
-  rebuild the index, and fix the migration per the note above.
+  dropped by a batch migration; re-run that archive's import (e.g.
+  `python import_csv.py songs`) to rebuild the index, and fix the migration per
+  the note above.
+- **A new archive's pages show 0 records** — its CSV was not in `files/` when the
+  image was built. The startup log names the ones it skipped; copy them in and
+  rebuild, or upload them from **/admin/import**.
 - **Want a clean slate (Docker)** — `docker compose down -v` deletes the volumes;
   the next `up` re-migrates and re-seeds from scratch.
