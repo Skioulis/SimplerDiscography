@@ -72,6 +72,9 @@ class Dataset:
 # into rows and columns is adapted to the responsive card.
 # --------------------------------------------------------------------------- #
 
+# ΣΗΜΕΙΩΣΕΙΣ takes the tall right-hand slot beside ΣΤΙΧΟΙ: it is the longest
+# free-text field here, while ΑΡΧΕΙΟ is usually a line or two and shares the
+# short bottom row with ΒΙΒΛΙΟΓΡΑΦΙΑ.
 _SONG_LAYOUT = (
     (
         Field("title", width=4),
@@ -80,11 +83,11 @@ _SONG_LAYOUT = (
     ),
     (
         Field("lyrics", "textarea", rows=14, width=4),
-        Field("archive", "textarea", rows=4, width=8),
+        Field("notes", "textarea", rows=14, width=8),
     ),
     (
         Field("bibliography", "textarea", rows=4, width=4),
-        Field("notes", "textarea", rows=11, width=8),
+        Field("archive", "textarea", rows=4, width=8),
     ),
 )
 
