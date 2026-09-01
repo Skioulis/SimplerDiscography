@@ -32,10 +32,10 @@
         <span class="pager__btn is-disabled" aria-hidden="true">‹</span>
         {% endif %}
         <span class="pager__jump">
-          <input type="number" class="pager__input" name="id" form="gotoform"
-                 value="{{ record.id }}" min="1" step="1"
-                 aria-label="Μετάβαση σε εγγραφή">
-          <span class="pager__total">{{ position|gr }} / {{ total|gr }}</span>
+          <input type="number" class="pager__input" name="n" form="gotoform"
+                 value="{{ position }}" min="1" max="{{ total }}" step="1"
+                 aria-label="Μετάβαση σε εγγραφή κατά αύξοντα αριθμό">
+          <span class="pager__total">/ {{ total|gr }}</span>
         </span>
         {% if next_id %}
         <a class="pager__btn" href="{{ url_for('main.record', dataset=dataset, rec_id=next_id) }}" aria-label="Επόμενο" title="Επόμενο">›</a>

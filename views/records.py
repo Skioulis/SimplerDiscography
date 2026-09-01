@@ -92,23 +92,27 @@ def record(dataset: Dataset, rec_id: int):
 
 @main.route("/<ds:dataset>/goto")
 def goto(dataset: Dataset):
-    """Jump to a record by id from the pager box (clamps to the nearest existing)."""
-    model = dataset.model
-    try:
-        target = int(request.args.get("id", ""))
-    except (TypeError, ValueError):
-        return redirect(url_for("main.record", dataset=dataset, rec_id=1))
+    """Jump to the nth record from the pager box.
 
-    min_id, max_id = bounds(dataset)
-    if min_id is None:
+    ``n`` is a position in the sequence, not an id. Deleted rows leave their
+    ids behind, so "the nth record" and "record n" drift apart — by 1.197 in
+    the 45άρια — and the position is what the pager shows. Out of range values
+    clamp to the first or last record.
+    """
+    model = dataset.model
+    total = db.session.scalar(select(func.count()).select_from(model))
+    if not total:
         abort(404)
 
-    target = max(min_id, min(target, max_id))
-    if db.session.get(model, target) is None:  # land on nearest existing id
-        target = (
-            db.session.scalar(select(func.min(model.id)).where(model.id >= target))
-            or db.session.scalar(select(func.max(model.id)).where(model.id <= target))
-        )
+    try:
+        position = int(request.args.get("n", ""))
+    except (TypeError, ValueError):
+        position = 1
+
+    position = max(1, min(position, total))
+    target = db.session.scalar(
+        select(model.id).order_by(model.id).offset(position - 1).limit(1)
+    )
     return redirect(url_for("main.record", dataset=dataset, rec_id=target))
 
 

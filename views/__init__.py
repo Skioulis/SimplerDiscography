@@ -12,7 +12,7 @@ URL shape:
     /<ds>/new             add a record
     /<ds>/<id>            view, edit and save a record
     /<ds>/<id>/delete     delete a record
-    /<ds>/goto            pager jump-to-id
+    /<ds>/goto            pager jump to the nth record
     /search, /replace     dataset taken from the ?ds= parameter
     /admin/...            dataset-agnostic
 

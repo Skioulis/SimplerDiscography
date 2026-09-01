@@ -40,24 +40,41 @@ def test_pager_links_follow_the_gaps(gapped):
     assert 'href="/45/9"' in html
 
 
+def test_goto_counts_positions_not_ids(gapped):
+    """3 records numbered 1, 5, 9: the 2nd one is id 5, not id 2."""
+    r = gapped.test_client().get("/45/goto?n=2")
+    assert r.headers["Location"] == "/45/5"
+
+
+def test_goto_reaches_the_last_position(gapped):
+    r = gapped.test_client().get("/45/goto?n=3")
+    assert r.headers["Location"] == "/45/9"
+
+
 def test_goto_clamps_above_the_range(gapped):
-    r = gapped.test_client().get("/45/goto?id=999999")
+    r = gapped.test_client().get("/45/goto?n=999999")
     assert r.headers["Location"] == "/45/9"
 
 
 def test_goto_clamps_below_the_range(gapped):
-    r = gapped.test_client().get("/45/goto?id=0")
+    r = gapped.test_client().get("/45/goto?n=0")
     assert r.headers["Location"] == "/45/1"
 
 
-def test_goto_lands_on_the_nearest_existing_id(gapped):
-    r = gapped.test_client().get("/45/goto?id=6")
-    assert r.headers["Location"] == "/45/9"
-
-
 def test_goto_survives_junk_input(gapped):
-    r = gapped.test_client().get("/45/goto?id=abc")
-    assert r.status_code == 302
+    r = gapped.test_client().get("/45/goto?n=abc")
+    assert r.headers["Location"] == "/45/1"
+
+
+def test_goto_on_an_empty_archive_is_404(app):
+    assert app.test_client().get("/45/goto?n=1").status_code == 404
+
+
+def test_pager_box_holds_the_position(gapped):
+    """The jump box shows where you are in the sequence, not the row's id."""
+    html = gapped.test_client().get("/45/9").get_data(as_text=True)
+    assert 'name="n"' in html
+    assert 'value="3"' in html
 
 
 def test_missing_record_is_404(app):
