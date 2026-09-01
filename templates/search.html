@@ -64,9 +64,16 @@
       <ul class="pagination">
         <li class="page-item {{ 'disabled' if page <= 1 }}">
           {% if page <= 1 %}
+          <span class="page-link" aria-hidden="true">«</span>
+          {% else %}
+          <a class="page-link" href="{{ url_for('main.search', q=q, field=field, ds=dataset.key, page=1) }}" aria-label="Πρώτη σελίδα" title="Πρώτη σελίδα">«</a>
+          {% endif %}
+        </li>
+        <li class="page-item {{ 'disabled' if page <= 1 }}">
+          {% if page <= 1 %}
           <span class="page-link" aria-hidden="true">‹</span>
           {% else %}
-          <a class="page-link" href="{{ url_for('main.search', q=q, field=field, ds=dataset.key, page=page-1) }}" aria-label="Προηγούμενη">‹</a>
+          <a class="page-link" href="{{ url_for('main.search', q=q, field=field, ds=dataset.key, page=page-1) }}" aria-label="Προηγούμενη" title="Προηγούμενη">‹</a>
           {% endif %}
         </li>
         {% for p in page_items %}
@@ -82,7 +89,14 @@
           {% if page >= total_pages %}
           <span class="page-link" aria-hidden="true">›</span>
           {% else %}
-          <a class="page-link" href="{{ url_for('main.search', q=q, field=field, ds=dataset.key, page=page+1) }}" aria-label="Επόμενη">›</a>
+          <a class="page-link" href="{{ url_for('main.search', q=q, field=field, ds=dataset.key, page=page+1) }}" aria-label="Επόμενη" title="Επόμενη">›</a>
+          {% endif %}
+        </li>
+        <li class="page-item {{ 'disabled' if page >= total_pages }}">
+          {% if page >= total_pages %}
+          <span class="page-link" aria-hidden="true">»</span>
+          {% else %}
+          <a class="page-link" href="{{ url_for('main.search', q=q, field=field, ds=dataset.key, page=total_pages) }}" aria-label="Τελευταία σελίδα" title="Τελευταία σελίδα">»</a>
           {% endif %}
         </li>
       </ul>

@@ -129,6 +129,17 @@ def neighbours(dataset: Dataset, rec_id: int) -> tuple[int | None, int | None]:
     return prev_id, next_id
 
 
+def bounds(dataset: Dataset) -> tuple[int | None, int | None]:
+    """Lowest/highest record id in the archive, or (None, None) if it's empty."""
+    from sqlalchemy import func, select
+
+    model = dataset.model
+    return (
+        db.session.scalar(select(func.min(model.id))),
+        db.session.scalar(select(func.max(model.id))),
+    )
+
+
 def page_window(page: int, total_pages: int, edge: int = 1, around: int = 2) -> list:
     """Page numbers to show, with None marking an ellipsis gap."""
     if total_pages <= 1:

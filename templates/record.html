@@ -25,8 +25,10 @@
     <div class="card-footer record__foot">
       <nav class="pager" aria-label="Πλοήγηση εγγραφών">
         {% if prev_id %}
-        <a class="pager__btn" href="{{ url_for('main.record', dataset=dataset, rec_id=prev_id) }}" aria-label="Προηγούμενο">‹</a>
+        <a class="pager__btn" href="{{ url_for('main.record', dataset=dataset, rec_id=first_id) }}" aria-label="Πρώτη εγγραφή" title="Πρώτη εγγραφή">«</a>
+        <a class="pager__btn" href="{{ url_for('main.record', dataset=dataset, rec_id=prev_id) }}" aria-label="Προηγούμενο" title="Προηγούμενο">‹</a>
         {% else %}
+        <span class="pager__btn is-disabled" aria-hidden="true">«</span>
         <span class="pager__btn is-disabled" aria-hidden="true">‹</span>
         {% endif %}
         <span class="pager__jump">
@@ -36,9 +38,11 @@
           <span class="pager__total">{{ position|gr }} / {{ total|gr }}</span>
         </span>
         {% if next_id %}
-        <a class="pager__btn" href="{{ url_for('main.record', dataset=dataset, rec_id=next_id) }}" aria-label="Επόμενο">›</a>
+        <a class="pager__btn" href="{{ url_for('main.record', dataset=dataset, rec_id=next_id) }}" aria-label="Επόμενο" title="Επόμενο">›</a>
+        <a class="pager__btn" href="{{ url_for('main.record', dataset=dataset, rec_id=last_id) }}" aria-label="Τελευταία εγγραφή" title="Τελευταία εγγραφή">»</a>
         {% else %}
         <span class="pager__btn is-disabled" aria-hidden="true">›</span>
+        <span class="pager__btn is-disabled" aria-hidden="true">»</span>
         {% endif %}
       </nav>
 

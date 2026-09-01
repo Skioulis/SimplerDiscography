@@ -10,7 +10,7 @@ from dataio import next_id as next_free_id
 from datasets import Dataset
 from extensions import db
 from stats import dashboard_stats
-from views import main, neighbours
+from views import bounds, main, neighbours
 
 #: Dashboard template per stats kind.
 _DASHBOARD_TEMPLATES = {
@@ -72,6 +72,7 @@ def record_create(dataset: Dataset):
 def record(dataset: Dataset, rec_id: int):
     record = _get_or_404(dataset, rec_id)
     prev_id, next_id = neighbours(dataset, rec_id)
+    first_id, last_id = bounds(dataset)
     model = dataset.model
     total = db.session.scalar(select(func.count()).select_from(model))
     position = db.session.scalar(select(func.count()).where(model.id <= rec_id))
@@ -81,6 +82,8 @@ def record(dataset: Dataset, rec_id: int):
         dataset=dataset,
         prev_id=prev_id,
         next_id=next_id,
+        first_id=first_id,
+        last_id=last_id,
         total=total,
         position=position,
         edit=bool(request.args.get("edit")),
@@ -96,8 +99,7 @@ def goto(dataset: Dataset):
     except (TypeError, ValueError):
         return redirect(url_for("main.record", dataset=dataset, rec_id=1))
 
-    min_id = db.session.scalar(select(func.min(model.id)))
-    max_id = db.session.scalar(select(func.max(model.id)))
+    min_id, max_id = bounds(dataset)
     if min_id is None:
         abort(404)
 
