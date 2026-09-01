@@ -674,6 +674,18 @@ body {
 }
 
 .record-field { resize: none; }
+
+/* a column holding several fields; the one marked to grow absorbs the height
+   the neighbouring column adds, so both columns end flush instead of leaving
+   a hole under the short field */
+.field-stack { display: flex; flex-direction: column; height: 100%; }
+.field-stack__item--grow {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.field-stack__item--grow .record-field { flex: 1 1 auto; }
 #f-lyrics { font-family: var(--font-display); font-size: 1rem; line-height: 1.55; }
 
 /* view mode: fields read as filled paper boxes; edit mode: editable white */

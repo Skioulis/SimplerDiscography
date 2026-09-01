@@ -2,7 +2,11 @@
 
    Used by the record view/edit and the add-new form for every archive, so
    field order, labels and widths live in the registry (datasets.py) rather
-   than in a template per archive. #}
+   than in a template per archive.
+
+   A row holds cells: either a single Field, or a Stack of fields sharing one
+   column. Columns in a row are equal height, so a field marked grow=True
+   stretches to fill whatever its stack does not use. #}
 
 {% macro textfield(name, label, value, readonly=True) %}
 <label class="form-label field-label" for="f-{{ name }}">{{ label }}</label>
@@ -16,16 +20,30 @@
           rows="{{ rows }}" {% if readonly %}readonly{% endif %}>{{ value or '' }}</textarea>
 {% endmacro %}
 
+{% macro field(dataset, record, f, readonly) %}
+{% if f.widget == 'textarea' %}
+  {{ areafield(f.attr, dataset.label(f.attr), record[f.attr], f.rows, readonly) }}
+{% else %}
+  {{ textfield(f.attr, dataset.label(f.attr), record[f.attr], readonly) }}
+{% endif %}
+{% endmacro %}
+
 {% macro record_fields(dataset, record, editable=False) %}
 {% set ro = not editable %}
 {% for row in dataset.layout %}
 <div class="row g-3{% if not loop.first %} mt-1{% endif %}">
-  {% for f in row %}
-  <div class="col-md-{{ f.width }}">
-    {% if f.widget == 'textarea' %}
-      {{ areafield(f.attr, dataset.label(f.attr), record[f.attr], f.rows, ro) }}
+  {% for cell in row %}
+  <div class="col-md-{{ cell.width }}">
+    {% if cell.is_stack %}
+    <div class="field-stack">
+      {% for f in cell.fields %}
+      <div class="field-stack__item{% if f.grow %} field-stack__item--grow{% endif %}{% if not loop.first %} mt-3{% endif %}">
+        {{ field(dataset, record, f, ro) }}
+      </div>
+      {% endfor %}
+    </div>
     {% else %}
-      {{ textfield(f.attr, dataset.label(f.attr), record[f.attr], ro) }}
+      {{ field(dataset, record, cell, ro) }}
     {% endif %}
   </div>
   {% endfor %}

@@ -20,14 +20,35 @@ from models import Biography, Disc45, Disc78, Song
 class Field:
     """One field in the record card.
 
-    ``width`` is a Bootstrap column span (out of 12). ``rows`` applies only to
-    textareas.
+    ``width`` is a Bootstrap column span (out of 12), ignored inside a
+    :class:`Stack`, which sets the width for the whole column. ``rows`` and
+    ``grow`` apply only to textareas: ``rows`` is the natural height, ``grow``
+    lets the box absorb whatever height the neighbouring column adds.
     """
 
     attr: str
     widget: str = "input"  # "input" | "textarea"
     rows: int = 1
     width: int = 4
+    grow: bool = False
+
+    is_stack = False
+
+
+@dataclass(frozen=True)
+class Stack:
+    """Several fields stacked vertically inside one column of a row.
+
+    A plain row puts one field per column, so a column with a short field
+    beside a tall one is left with dead space under it. A ``Stack`` fills that
+    column top to bottom instead; mark the field that should soak up the
+    leftover height with ``grow=True``.
+    """
+
+    width: int
+    fields: tuple[Field, ...]
+
+    is_stack = True
 
 
 @dataclass(frozen=True)
@@ -44,7 +65,7 @@ class Dataset:
     csv_filename: str
     fts_table: str
     stats_kind: str  # which dashboard builder/template to use
-    layout: tuple[tuple[Field, ...], ...]  # rows of fields
+    layout: tuple[tuple[Field | Stack, ...], ...]  # rows of cells
     result_title: str  # attribute shown as the result headline
     result_meta: tuple[str, ...]  # attributes shown beneath it
 
@@ -72,9 +93,10 @@ class Dataset:
 # into rows and columns is adapted to the responsive card.
 # --------------------------------------------------------------------------- #
 
-# ΣΗΜΕΙΩΣΕΙΣ takes the tall right-hand slot beside ΣΤΙΧΟΙ: it is the longest
-# free-text field here, while ΑΡΧΕΙΟ is usually a line or two and shares the
-# short bottom row with ΒΙΒΛΙΟΓΡΑΦΙΑ.
+# The body is one row of two stacked columns rather than two rows, so that
+# ΣΗΜΕΙΩΣΕΙΣ can grow into the space ΑΡΧΕΙΟ leaves under itself instead of the
+# card carrying a hole there. Field order is the original one: ΣΤΙΧΟΙ and
+# ΒΙΒΛΙΟΓΡΑΦΙΑ down the left, ΑΡΧΕΙΟ then ΣΗΜΕΙΩΣΕΙΣ down the right.
 _SONG_LAYOUT = (
     (
         Field("title", width=4),
@@ -82,12 +104,20 @@ _SONG_LAYOUT = (
         Field("lyricist", width=4),
     ),
     (
-        Field("lyrics", "textarea", rows=14, width=4),
-        Field("notes", "textarea", rows=14, width=8),
-    ),
-    (
-        Field("bibliography", "textarea", rows=4, width=4),
-        Field("archive", "textarea", rows=4, width=8),
+        Stack(
+            4,
+            (
+                Field("lyrics", "textarea", rows=14),
+                Field("bibliography", "textarea", rows=4),
+            ),
+        ),
+        Stack(
+            8,
+            (
+                Field("archive", "textarea", rows=4),
+                Field("notes", "textarea", rows=14, grow=True),
+            ),
+        ),
     ),
 )
 
