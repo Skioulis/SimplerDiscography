@@ -1,5 +1,8 @@
 """Search scoping: per-archive by default, all archives on request."""
 
+import pytest
+
+from datasets import DATASET_LIST
 from extensions import db
 from models import Biography, Disc45, Disc78, Song
 
@@ -104,3 +107,81 @@ def test_invalid_regex_reports_an_error(app):
     r = app.test_client().get("/api/replace/find?q=%5B&re=1&ds=45")
     assert r.status_code == 400
     assert "error" in r.get_json()
+
+
+# --------------------------------------------------------------------------- #
+# Replace preview
+#
+# The preview mirrors dataset.layout. When a layout gains a new cell type the
+# preview has to learn it too: a Stack was once rendered as an empty, unlabelled
+# box, so half the record silently vanished from the replace tool.
+# --------------------------------------------------------------------------- #
+
+def _text_of(html: str) -> str:
+    """Visible text of the preview — matches are wrapped in <mark>, so a value
+    is split across tags and can only be compared once the markup is gone."""
+    import re
+    return re.sub(r"<[^>]+>", "", html)
+
+
+@pytest.mark.parametrize("dataset", DATASET_LIST, ids=lambda d: d.key)
+def test_preview_renders_every_field_of_every_archive(app, dataset):
+    model = dataset.model
+    values = {attr: f"τιμή {attr}" for attr in dataset.searchable_fields}
+    record = model(**values)
+    if model.CSV_ID_COLUMN:
+        record.id = 1
+    db.session.add(record)
+    db.session.commit()
+
+    r = app.test_client().get(
+        f"/api/replace/preview?q=τιμή&ds={dataset.key}&id={record.id}")
+    assert r.status_code == 200
+    html = r.get_json()["html"]
+    text = _text_of(html)
+
+    # Every searchable field appears, with its label and its value.
+    for attr in dataset.searchable_fields:
+        assert f">{dataset.label(attr)}</label>" in html, f"{dataset.key}: {attr} label missing"
+        assert values[attr] in text, f"{dataset.key}: {attr} value missing"
+
+    # And nothing renders as a value box without a label beside it.
+    boxes = html.count('class="replace-view__value')
+    labels = html.count('class="field-label"')
+    assert boxes == labels == len(dataset.searchable_fields)
+
+
+def test_preview_covers_fields_nested_in_a_stack(app):
+    """Fields inside a Stack are the ones a flat loop over rows would drop."""
+    from datasets import SONGS
+
+    stacked = [f.attr
+               for row in SONGS.layout
+               for cell in row if getattr(cell, "is_stack", False)
+               for f in cell.fields]
+    assert stacked, "the songs layout no longer uses a Stack; update this test"
+
+    db.session.add(Song(id=1, **{a: f"κείμενο {a}" for a in SONGS.searchable_fields}))
+    db.session.commit()
+
+    text = _text_of(app.test_client().get(
+        "/api/replace/preview?q=κείμενο&ds=songs&id=1").get_json()["html"])
+    for attr in stacked:
+        assert f"κείμενο {attr}" in text, f"stacked field {attr} missing from preview"
+
+
+def test_preview_box_height_follows_the_field_rows(app):
+    """Each box carries its field's row count, so it keeps the card's shape."""
+    from datasets import SONGS
+
+    db.session.add(Song(id=1, title="Νοσταλγία", lyrics="στίχοι"))
+    db.session.commit()
+    html = app.test_client().get(
+        "/api/replace/preview?q=Νοσταλγία&ds=songs&id=1").get_json()["html"]
+
+    rows = {f.attr: f.rows
+            for row in SONGS.layout
+            for cell in row
+            for f in (cell.fields if getattr(cell, "is_stack", False) else (cell,))}
+    assert f'style="--rows: {rows["lyrics"]}"' in html
+    assert f'style="--rows: {rows["title"]}"' in html

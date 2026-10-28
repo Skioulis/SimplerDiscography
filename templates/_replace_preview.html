@@ -1,10 +1,14 @@
 {# Read-only rendition of a full record for the replace tool, matches highlighted.
-   Layout comes from dataset.layout, so it mirrors the record card of whichever
-   archive is being edited. #}
 
-{% macro pf(dataset, hl, attr, prose=False) %}
-<label class="field-label">{{ dataset.label(attr) }}</label>
-<div class="replace-view__value{% if prose %} replace-view__value--serif{% endif %}">{{ hl[attr]|safe }}</div>
+   Mirrors _record_fields.html cell for cell — same rows, stacks, widths and
+   field heights — so a match reads like the record card you would get by
+   opening the entry. It renders divs rather than inputs because a textarea
+   shows markup as literal text, and the matches have to be wrapped in <mark>. #}
+
+{% macro pv(dataset, hl, f) %}
+<label class="field-label">{{ dataset.label(f.attr) }}</label>
+<div class="replace-view__value{% if f.attr == 'lyrics' %} replace-view__value--serif{% endif %}"
+     style="--rows: {{ f.rows }}">{{ hl[f.attr]|safe }}</div>
 {% endmacro %}
 
 <div class="card fr-current__card">
@@ -19,9 +23,19 @@
 
     {% for row in dataset.layout %}
     <div class="row g-3{% if not loop.first %} mt-1{% endif %}">
-      {% for f in row %}
-      <div class="col-md-{{ f.width }}">
-        {{ pf(dataset, hl, f.attr, f.widget == 'textarea' and f.rows >= 10) }}
+      {% for cell in row %}
+      <div class="col-md-{{ cell.width }}">
+        {% if cell.is_stack %}
+        <div class="field-stack">
+          {% for f in cell.fields %}
+          <div class="field-stack__item{% if f.grow %} field-stack__item--grow{% endif %}{% if not loop.first %} mt-3{% endif %}">
+            {{ pv(dataset, hl, f) }}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+          {{ pv(dataset, hl, cell) }}
+        {% endif %}
       </div>
       {% endfor %}
     </div>

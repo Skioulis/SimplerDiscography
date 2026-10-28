@@ -481,17 +481,31 @@ body {
 /* read-only field boxes in the replace preview (styled like the record form) */
 .replace-view__value {
   background: var(--surface-2);
+  /* Transparent border rather than none: keeps the same box metrics as the
+     real field, so the two line up instead of drifting by 2px per box. */
+  border: 1px solid transparent;
   border-radius: 10px;
-  padding: .55rem .7rem;
   margin-top: .3rem;
-  font-size: .92rem;
   color: var(--ink);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  min-height: 2.5rem;
-  max-height: 13rem;
   overflow-y: auto;
+
+  /* Match .record-field exactly, so a match reads like the opened record. */
+  padding: 6px .7rem;
+  font-size: 1rem;
+  line-height: 1.5;
+
+  /* Height follows the field's own `rows` instead of collapsing every field to
+     one size. Fixed and scrolling inside, exactly like a textarea. The `lh`
+     unit tracks whatever line-height the variant sets; the em fallback is for
+     browsers without it. */
+  height: calc(var(--rows, 1) * 1.5em + 14px);
+  height: calc(var(--rows, 1) * 1lh + 14px);
 }
+
+/* A field marked grow=True soaks up the height its stack does not use. */
+.field-stack__item--grow .replace-view__value { flex: 1 1 auto; height: auto; }
 .replace-view__value--serif { font-family: var(--font-display); line-height: 1.55; }
 .replace-view__value mark { background: #ffe9a8; padding: 0 .1em; border-radius: 2px; }
 
